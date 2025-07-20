@@ -1,9 +1,0 @@
-2025-07-17 20:19:49,067 Worker rq:worker:7aa5a541b3bb4c19befd419b260c8e07 started with PID 14251, version 2.4.0
-2025-07-17 20:19:49,096 Subscribing to channel rq:pubsub:7aa5a541b3bb4c19befd419b260c8e07
-2025-07-17 20:19:49,098 *** Listening on media-kirollos-Data-Eden-raven-frappe-bench:short, media-kirollos-Data-Eden-raven-frappe-bench:default, media-kirollos-Data-Eden-raven-frappe-bench:long...
-2025-07-17 20:19:49,099 Cleaning registries for queue: media-kirollos-Data-Eden-raven-frappe-bench:short
-2025-07-17 20:19:49,106 Cleaning registries for queue: media-kirollos-Data-Eden-raven-frappe-bench:default
-2025-07-17 20:19:49,108 Cleaning registries for queue: media-kirollos-Data-Eden-raven-frappe-bench:long
-2025-07-17 20:33:19,355 Cleaning registries for queue: media-kirollos-Data-Eden-raven-frappe-bench:short
-2025-07-17 20:33:19,412 Cleaning registries for queue: media-kirollos-Data-Eden-raven-frappe-bench:default
-2025-07-17 20:33:19,421 Cleaning registries for queue: media-kirollos-Data-Eden-raven-frappe-bench:long
