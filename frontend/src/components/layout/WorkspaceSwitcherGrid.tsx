@@ -91,7 +91,7 @@ const WorkspaceMemberCount = ({ workspace }: { workspace: string }) => {
 const getLogo = (workspace: WorkspaceFields) => {
     let logo = workspace.logo || ''
 
-    if (!logo && workspace.workspace_name === 'Raven') {
+    if (!logo && workspace.workspace_name === 'Eden') {
         logo = '/assets/raven/raven-logo.png'
     }
 

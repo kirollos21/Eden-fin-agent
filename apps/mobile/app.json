@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Eden AI",
+    "name": "Eden",
     "slug": "eden-ai",
     "scheme": "eden.thecommit.company",
     "version": "1.1.3",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/eden-icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -33,7 +33,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/eden-adaptive-icon.png",
         "backgroundColor": "#000000"
       },
       "softwareKeyboardLayoutMode": "pan",
@@ -41,7 +41,7 @@
       "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/eden-favicon.png"
     },
     "plugins": [
       [

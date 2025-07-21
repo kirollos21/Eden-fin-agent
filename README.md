@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/The-Commit-Company/raven">
-  <img src="raven_logo.png" alt="Raven logo" height="100" />
+  <img src="eden_logo.png" alt="Eden logo" height="100" />
      </a>
    <hr />
   <p align="center">Enterprise-first messaging platform that seamlessly integrates with your ERP
