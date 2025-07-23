@@ -55,7 +55,7 @@ export const UserListProvider = ({ children }: PropsWithChildren) => {
     if (isLoading) {
         return <Flex justify='center' align='center' height='100vh' width='100vw' className='animate-fadein'>
             <Stack className='text-center' gap='1'>
-                <Text size='7' className='cal-sans tracking-normal'>raven</Text>
+                <Text size='7' className='cal-sans tracking-normal'>Eden</Text>
                 <Text color='gray' weight='medium'>Setting up your workspace...</Text>
             </Stack>
         </Flex>
