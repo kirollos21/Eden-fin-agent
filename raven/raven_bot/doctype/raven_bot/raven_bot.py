@@ -43,7 +43,7 @@ class RavenBot(Document):
 		is_ai_bot: DF.Check
 		is_standard: DF.Check
 		model: DF.Data | None
-		model_provider: DF.Literal["OpenAI", "Local LLM"]
+		model_provider: DF.Literal["OpenAI", "Azure AI", "Local LLM"]
 		module: DF.Link | None
 		openai_assistant_id: DF.Data | None
 		openai_vector_store_id: DF.Data | None
@@ -110,10 +110,10 @@ class RavenBot(Document):
 					self.create_openai_assistant()
 				else:
 					self.update_openai_assistant()
-			else:
-				# For Local LLM or future Agents SDK, no assistant needed
+			elif self.model_provider in ["Azure AI", "Local LLM"]:
+				# For Azure AI or Local LLM, no assistant needed
 				if self.openai_assistant_id:
-					# Clear assistant ID if switching from OpenAI to Local LLM
+					# Clear assistant ID if switching from OpenAI to Azure AI or Local LLM
 					self.db_set("openai_assistant_id", None)
 					return
 
@@ -123,8 +123,8 @@ class RavenBot(Document):
 			if self.model_provider == "OpenAI":
 				# Skip assistant creation for Local LLM
 				self.create_openai_assistant()
-			elif self.model_provider == "Local LLM":
-				# For Local LLM, we don't need an OpenAI assistant
+			elif self.model_provider in ["Azure AI", "Local LLM"]:
+				# For Azure AI or Local LLM, we don't need an OpenAI assistant
 				return
 
 	def on_trash(self):
@@ -138,8 +138,8 @@ class RavenBot(Document):
 
 	def create_openai_assistant(self):
 		# Create an OpenAI Assistant for the bot (legacy - being phased out for Agents SDK)
-		# Check again to ensure we're not creating for Local LLM
-		if self.model_provider == "Local LLM":
+		# Check again to ensure we're not creating for Local LLM or Azure AI
+		if self.model_provider in ["Local LLM", "Azure AI"]:
 			return
 
 		client = get_open_ai_client()
@@ -191,8 +191,8 @@ class RavenBot(Document):
 		if not self.is_ai_bot:
 			return
 
-		# Don't update assistant for Local LLM bots
-		if self.model_provider == "Local LLM":
+		# Don't update assistant for Local LLM or Azure AI bots
+		if self.model_provider in ["Local LLM", "Azure AI"]:
 			return
 
 		client = get_open_ai_client()

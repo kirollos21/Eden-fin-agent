@@ -235,16 +235,17 @@ const ModelProviderSelector = () => {
     if (!is_ai_bot) return null
 
     const hasOpenAI = ravenSettings?.enable_openai_services
+    const hasAzureAI = ravenSettings?.enable_azure_ai
     const hasLocalLLM = ravenSettings?.enable_local_llm
 
-    if (!hasOpenAI && !hasLocalLLM) {
+    if (!hasOpenAI && !hasAzureAI && !hasLocalLLM) {
         return (
             <Callout.Root color="red" size="1">
                 <Callout.Icon>
                     <BiInfoCircle />
                 </Callout.Icon>
                 <Callout.Text>
-                    No AI providers are configured. Please configure OpenAI or Local LLM in AI Settings.
+                    No AI providers are configured. Please configure OpenAI, Azure AI, or Local LLM in AI Settings.
                 </Callout.Text>
             </Callout.Root>
         )
@@ -258,15 +259,16 @@ const ModelProviderSelector = () => {
                     rules={{
                         required: is_ai_bot ? "Please select a model provider" : false
                     }}
-                    defaultValue={hasOpenAI ? 'OpenAI' : hasLocalLLM ? 'Local LLM' : 'OpenAI'}
+                    defaultValue={hasOpenAI ? 'OpenAI' : hasAzureAI ? 'Azure AI' : hasLocalLLM ? 'Local LLM' : 'OpenAI'}
                     render={({ field }) => (
                         <Select.Root
-                            value={field.value || (hasOpenAI ? 'OpenAI' : 'Local LLM')}
+                            value={field.value || (hasOpenAI ? 'OpenAI' : hasAzureAI ? 'Azure AI' : 'Local LLM')}
                             name={field.name}
                             onValueChange={(value) => field.onChange(value)}>
                             <Select.Trigger placeholder='Select Provider' className='w-full' />
                             <Select.Content>
                                 {hasOpenAI ? <Select.Item value='OpenAI'>OpenAI</Select.Item> : null}
+                                {hasAzureAI ? <Select.Item value='Azure AI'>Azure AI</Select.Item> : null}
                                 {hasLocalLLM ? <Select.Item value='Local LLM'>Local LLM</Select.Item> : null}
                             </Select.Content>
                         </Select.Root>
@@ -289,6 +291,12 @@ const ModelSelector = () => {
         revalidateIfStale: false
     })
 
+    // Fetch Azure AI models
+    const { data: azureModels } = useFrappeGetCall('raven.api.ai_features.get_azure_openai_available_models', undefined, modelProvider === 'Azure AI' ? undefined : null, {
+        revalidateOnFocus: false,
+        revalidateIfStale: false
+    })
+
     // Fetch Local LLM models
     const { data: localModelData } = useFrappeGetCall<{
         message: {
@@ -307,9 +315,14 @@ const ModelSelector = () => {
 
     if (!is_ai_bot) return null
 
-    const models: string[] = modelProvider === 'Local LLM' ? localModels : openaiModels?.message || []
+    const models: string[] = modelProvider === 'Local LLM' ? localModels : 
+                            modelProvider === 'Azure AI' ? (azureModels?.message || []) : 
+                            openaiModels?.message || []
+    
     const defaultModel = modelProvider === 'Local LLM'
         ? (localModels[0] || 'default-model')
+        : modelProvider === 'Azure AI'
+        ? 'gpt-4o'
         : 'gpt-4o'
 
     // Filter out empty strings from models
@@ -348,6 +361,8 @@ const ModelSelector = () => {
             <HelperText>
                 {modelProvider === 'Local LLM'
                     ? 'Select a model available on your local LLM server.'
+                    : modelProvider === 'Azure AI'
+                    ? 'Select a model available in your Azure OpenAI resource.'
                     : 'The model should be compatible with the OpenAI Assistants API. We recommend using models in the GPT-4 family for best results.'}
             </HelperText>
         </Stack>

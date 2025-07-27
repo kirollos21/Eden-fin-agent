@@ -52,6 +52,24 @@ class RavenAgentManager:
 				api_key="not-needed",  # LM Studio doesn't require API key
 				base_url=self.settings.local_llm_api_url,
 			)
+		elif self.bot_doc.model_provider == "Azure AI" and self.settings.enable_azure_ai:
+			# Client for Azure AI
+			azure_api_key = self.settings.get_password("azure_api_key")
+			azure_endpoint = (self.settings.azure_endpoint or "").strip()
+			azure_api_version = (self.settings.azure_api_version or "").strip()
+
+			if not azure_api_key:
+				frappe.throw(_("Azure API key is not configured in Raven Settings"))
+			if not azure_endpoint:
+				frappe.throw(_("Azure endpoint is not configured in Raven Settings"))
+			if not azure_api_version:
+				frappe.throw(_("Azure API version is not configured in Raven Settings"))
+
+			client = AsyncOpenAI(
+				api_key=azure_api_key,
+				azure_endpoint=azure_endpoint,
+				api_version=azure_api_version,
+			)
 		else:
 			# Standard OpenAI client
 			api_key = self.settings.get_password("openai_api_key")
@@ -84,7 +102,7 @@ class RavenAgentManager:
 				f"Error: {str(e)}\n"
 				f"Model: {self.bot_doc.model}\n"
 				f"Provider: {self.bot_doc.model_provider}\n"
-				f"API URL: {self.settings.local_llm_api_url if self.bot_doc.model_provider == 'Local LLM' else 'OpenAI'}",
+				f"API URL: {self.settings.local_llm_api_url if self.bot_doc.model_provider == 'Local LLM' else (self.settings.azure_endpoint if self.bot_doc.model_provider == 'Azure AI' else 'OpenAI')}",
 				"API Connection Error",
 			)
 			return False

@@ -27,6 +27,14 @@ export interface RavenSettings{
 	openai_api_key?: string
 	/**	OpenAI Project ID : Data - If not set, the integration will use the default project	*/
 	openai_project_id?: string
+	/**	Enable Azure AI Foundry : Check	*/
+	enable_azure_ai?: 0 | 1
+	/**	Azure API Key : Password	*/
+	azure_api_key?: string
+	/**	Azure Endpoint : Data	*/
+	azure_endpoint?: string
+	/**	Azure API Version : Data	*/
+	azure_api_version?: string
 	/**	Enable Local LLM : Check	*/
 	enable_local_llm?: 0 | 1
 	/**	Local LLM Provider : Select	*/
