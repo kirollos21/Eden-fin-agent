@@ -312,7 +312,7 @@ const ModelSelector = () => {
         endpoint: ravenSettings?.azure_endpoint,
         api_version: ravenSettings?.azure_api_version,
         deployment_name: ravenSettings?.azure_deployment_name
-    }, modelProvider === 'Azure AI' && (!azureModels?.message || azureModels.message.length === 0) ? undefined : null, {
+    }, modelProvider === 'Azure AI' ? undefined : null, {
         revalidateOnFocus: false,
         revalidateIfStale: false
     })
@@ -337,7 +337,7 @@ const ModelSelector = () => {
 
     // Use database models if available, otherwise fallback to test API models
     // Add safer data access with proper type checking
-    const primaryModels = azureModels?.message || []
+    const primaryModels = azureModels || []
     const fallbackModels = azureModelsFromTest?.message?.models?.map((m: any) => m.id) || []
     
     const azureModelsToUse = primaryModels.length > 0 
@@ -409,9 +409,20 @@ const ModelSelector = () => {
             {/* Show additional error information for debugging */}
             {modelProvider === 'Azure AI' && (azureError || azureTestError) && (
                 <HelperText color="red">
-                    {azureError && `Primary API Error: ${azureError}`}
+                    {azureError && `Primary API Error: ${typeof azureError === 'object' ? JSON.stringify(azureError) : azureError}`}
                     {azureError && azureTestError && ' | '}
-                    {azureTestError && `Fallback API Error: ${azureTestError}`}
+                    {azureTestError && `Fallback API Error: ${typeof azureTestError === 'object' ? JSON.stringify(azureTestError) : azureTestError}`}
+                </HelperText>
+            )}
+            {/* Debug information */}
+            {modelProvider === 'Azure AI' && (
+                <HelperText color="gray" size="1">
+                    Debug: Primary models: {primaryModels.length}, Fallback models: {fallbackModels.length}, 
+                    Using: {isUsingTestAPI ? 'Test API' : 'Database API'}
+                    <br />
+                    Settings: API Key: {ravenSettings?.azure_api_key ? 'Set' : 'Not set'}, 
+                    Endpoint: {ravenSettings?.azure_endpoint ? 'Set' : 'Not set'}, 
+                    API Version: {ravenSettings?.azure_api_version ? 'Set' : 'Not set'}
                 </HelperText>
             )}
         </Stack>
