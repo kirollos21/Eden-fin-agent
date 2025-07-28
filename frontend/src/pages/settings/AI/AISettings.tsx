@@ -268,6 +268,9 @@ const AzureAISection = () => {
             return
         }
 
+        // Clear previous test result before making new test
+        setTestResult(null)
+
         try {
             const result = await testConnection({
                 provider: 'Azure AI',
@@ -288,6 +291,7 @@ const AzureAISection = () => {
                 toast.error(result.message.message)
             }
         } catch (error) {
+            console.error('Test connection error:', error)
             toast.error('Failed to test connection')
             setTestResult({
                 success: false,

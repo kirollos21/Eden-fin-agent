@@ -105,20 +105,38 @@ def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_ke
 
 			# Create client with provided parameters using old AzureOpenAI approach
 			from openai import AzureOpenAI
+			import time
 			
-			client = AzureOpenAI(
-				api_key=api_key,
-				api_version=api_version,
-				azure_endpoint=endpoint
-			)
-			
-			# Try to list models
-			models = client.models.list()
-			return {
-				"success": True,
-				"message": "Successfully connected to Azure AI",
-				"models": [{"id": m.id} for m in models.data[:5]],  # Return first 5 models
-			}
+			try:
+				# Add a small delay to avoid potential rate limiting issues
+				time.sleep(0.1)
+				
+				# Normalize the endpoint - ensure it ends with a slash
+				normalized_endpoint = endpoint.strip()
+				if not normalized_endpoint.endswith('/'):
+					normalized_endpoint += '/'
+				
+				client = AzureOpenAI(
+					api_key=api_key,
+					api_version=api_version,
+					azure_endpoint=normalized_endpoint
+				)
+				
+				# Try to list models
+				models = client.models.list()
+				
+				# Log successful connection for debugging
+				frappe.logger().info(f"Azure AI test connection successful. Found {len(models.data)} models")
+				
+				return {
+					"success": True,
+					"message": "Successfully connected to Azure AI",
+					"models": [{"id": m.id} for m in models.data[:5]],  # Return first 5 models
+				}
+			except Exception as client_error:
+				# Log the specific error for debugging
+				frappe.log_error(f"Azure AI test connection failed: {str(client_error)}", "Azure AI Test Connection Error")
+				return {"success": False, "message": f"Azure AI connection failed: {str(client_error)}"}
 
 		elif provider == "OpenAI":
 			# Test OpenAI configuration with provided parameters
@@ -153,25 +171,39 @@ def get_azure_openai_available_models():
 		raven_settings = frappe.get_cached_doc("Raven Settings")
 		
 		if not raven_settings.enable_ai_integration:
+			frappe.log_error("Azure AI models requested but AI integration is not enabled", "Azure OpenAI Models Error")
 			return []
 			
 		if not raven_settings.enable_azure_ai:
+			frappe.log_error("Azure AI models requested but Azure AI is not enabled", "Azure OpenAI Models Error")
 			return []
 
 		azure_api_key = raven_settings.get_password("azure_api_key")
 		azure_endpoint = (raven_settings.azure_endpoint or "").strip()
 		azure_api_version = (raven_settings.azure_api_version or "").strip()
 
-		if not azure_api_key or not azure_endpoint or not azure_api_version:
+		if not azure_api_key:
+			frappe.log_error("Azure AI models requested but Azure API key is not configured", "Azure OpenAI Models Error")
+			return []
+		if not azure_endpoint:
+			frappe.log_error("Azure AI models requested but Azure endpoint is not configured", "Azure OpenAI Models Error")
+			return []
+		if not azure_api_version:
+			frappe.log_error("Azure AI models requested but Azure API version is not configured", "Azure OpenAI Models Error")
 			return []
 
 		# Create Azure OpenAI client
 		from openai import AzureOpenAI
 		
+		# Normalize the endpoint - ensure it ends with a slash
+		normalized_endpoint = azure_endpoint
+		if not normalized_endpoint.endswith('/'):
+			normalized_endpoint += '/'
+		
 		client = AzureOpenAI(
 			api_key=azure_api_key,
 			api_version=azure_api_version,
-			azure_endpoint=azure_endpoint
+			azure_endpoint=normalized_endpoint
 		)
 
 		# Get all models
@@ -181,6 +213,7 @@ def get_azure_openai_available_models():
 		# Let the user choose which model they want to use
 		model_ids = [model.id for model in models.data]
 		
+		frappe.logger().info(f"Successfully fetched {len(model_ids)} Azure OpenAI models")
 		return model_ids
 		
 	except Exception as e:

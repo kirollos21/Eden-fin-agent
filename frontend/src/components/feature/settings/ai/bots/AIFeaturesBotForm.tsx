@@ -318,7 +318,7 @@ const ModelSelector = () => {
     if (!is_ai_bot) return null
 
     const models: string[] = modelProvider === 'Local LLM' ? localModels : 
-                            modelProvider === 'Azure AI' ? (azureModels || []) : 
+                            modelProvider === 'Azure AI' ? (azureModels?.message || []) : 
                             openaiModels?.message || []
     
     // Set default model based on provider
