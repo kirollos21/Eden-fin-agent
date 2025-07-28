@@ -3,7 +3,7 @@ import { Stack, HStack } from '@/components/layout/Stack'
 import { RavenBot } from '@/types/RavenBot/RavenBot'
 import useRavenSettings from '@/hooks/fetchers/useRavenSettings'
 import { Box, TextField, Checkbox, Text, Separator, Tooltip, Heading, Select, Slider, Code, Callout } from '@radix-ui/themes'
-import { useFrappeGetCall } from 'frappe-react-sdk'
+import { useFrappeGetCall, useFrappePostCall } from 'frappe-react-sdk'
 import { useFormContext, Controller } from 'react-hook-form'
 import { BiInfoCircle } from 'react-icons/bi'
 
@@ -331,14 +331,18 @@ const ModelSelector = () => {
         revalidateIfStale: false
     })
 
-    const localModels = localModelData?.message.models?.map(m => m.id) || []
+    const localModels = localModelData?.message?.models?.map((m: any) => m.id) || []
 
     if (!is_ai_bot) return null
 
     // Use database models if available, otherwise fallback to test API models
-    const azureModelsToUse = azureModels?.message && azureModels.message.length > 0 
-        ? azureModels.message 
-        : azureModelsFromTest?.message?.models?.map(m => m.id) || []
+    // Add safer data access with proper type checking
+    const primaryModels = azureModels?.message || []
+    const fallbackModels = azureModelsFromTest?.message?.models?.map((m: any) => m.id) || []
+    
+    const azureModelsToUse = primaryModels.length > 0 
+        ? primaryModels 
+        : fallbackModels
 
     const models: string[] = modelProvider === 'Local LLM' ? localModels : 
                             modelProvider === 'Azure AI' ? azureModelsToUse : 
@@ -352,13 +356,12 @@ const ModelSelector = () => {
         : 'gpt-4o'
 
     // Filter out empty strings from models
-    const validModels = models.filter(model => model && model.trim() !== '')
+    const validModels = models.filter((model: string) => model && model.trim() !== '')
 
     // Determine if we're using test API values vs database values
     const isUsingTestAPI = modelProvider === 'Azure AI' && 
-                          (!azureModels?.message || azureModels.message.length === 0) && 
-                          azureModelsFromTest?.message?.models && 
-                          azureModelsFromTest.message.models.length > 0
+                          primaryModels.length === 0 && 
+                          fallbackModels.length > 0
 
     return (
         <Stack maxWidth={'480px'}>
@@ -403,6 +406,14 @@ const ModelSelector = () => {
                         : 'Select a model available in your Azure OpenAI resource. Make sure your Azure AI settings are configured correctly.'
                     : 'The model should be compatible with the OpenAI Assistants API. We recommend using models in the GPT-4 family for best results.'}
             </HelperText>
+            {/* Show additional error information for debugging */}
+            {modelProvider === 'Azure AI' && (azureError || azureTestError) && (
+                <HelperText color="red">
+                    {azureError && `Primary API Error: ${azureError}`}
+                    {azureError && azureTestError && ' | '}
+                    {azureTestError && `Fallback API Error: ${azureTestError}`}
+                </HelperText>
+            )}
         </Stack>
     )
 }
