@@ -23,32 +23,32 @@ export default defineConfig(({ command, mode }) => {
 				display: "standalone",
 				"icons": [
 					{
-						"src": "raven/public/manifest/android-chrome-192x192.png",
+						"src": "/assets/raven/manifest/android-chrome-192x192.png",
 						"sizes": "192x192",
 						"type": "image/png"
 					},
 					{
-						"src": "raven/public/manifest/android-chrome-512x512.png",
+						"src": "/assets/raven/manifest/android-chrome-512x512.png",
 						"sizes": "512x512",
 						"type": "image/png"
 					},
 					{
-						"src": "raven/public/manifest/apple-touch-icon.png",
+						"src": "/assets/raven/manifest/apple-touch-icon.png",
 						"sizes": "180x180",
 						"type": "image/png"
 					},
 					{
-						"src": "raven/public/manifest/favicon-16x16.png",
+						"src": "/assets/raven/manifest/favicon-16x16.png",
 						"sizes": "16x16",
 						"type": "image/png"
 					},
 					{
-						"src": "raven/public/manifest/favicon-32x32.png",
+						"src": "/assets/raven/manifest/favicon-32x32.png",
 						"sizes": "32x32",
 						"type": "image/png"
 					},
 					{
-						"src": "raven/public/manifest/favicon.ico",
+						"src": "/assets/raven/manifest/favicon.ico",
 						"sizes": "64x64 32x32 24x24 16x16",
 						"type": "image/x-icon"
 					}

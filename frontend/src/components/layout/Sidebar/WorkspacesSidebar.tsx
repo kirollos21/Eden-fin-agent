@@ -67,7 +67,7 @@ const WorkspaceItem = ({ workspace }: { workspace: WorkspaceFields & { unread_co
     let logo = workspace.logo || ''
 
           if (!logo && workspace.workspace_name === 'Eden') {
-        		logo = 'raven/public/raven-logo.png'
+        		          		logo = '/assets/raven/raven-logo.png'
     }
 
     const location = useLocation()

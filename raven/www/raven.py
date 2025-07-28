@@ -47,12 +47,12 @@ def get_context(context):
 	# Use local hardcoded values instead of website settings
 	context["app_name"] = "Eden"
 
-	# Use local favicon paths - pointing to actual local files
-	context["icon_96"] = "raven/public/manifest/favicon-96x96.png"
-	context["apple_touch_icon"] = "raven/public/manifest/apple-touch-icon.png"
-	context["mask_icon"] = "frontend/public/safari-pinned-tab.svg"
-	context["favicon_svg"] = "raven/public/manifest/favicon.svg"
-	context["favicon_ico"] = "raven/public/manifest/favicon.ico"
+	# Use web-accessible favicon paths
+	context["icon_96"] = "/assets/raven/manifest/favicon-96x96.png"
+	context["apple_touch_icon"] = "/assets/raven/manifest/apple-touch-icon.png"
+	context["mask_icon"] = "/safari-pinned-tab.svg"
+	context["favicon_svg"] = "/assets/raven/manifest/favicon.svg"
+	context["favicon_ico"] = "/assets/raven/manifest/favicon.ico"
 	context["sitename"] = boot.get("sitename")
 
 	if frappe.session.user != "Guest":

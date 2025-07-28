@@ -24,7 +24,7 @@ def get_client_id():
 		"raven_version": raven_version,
 		"frappe_version": frappe_version,
 		"logo": frappe.db.get_single_value("Navbar Settings", "app_logo")
-		or "raven/public/raven-logo.png",
+		or "/assets/raven/raven-logo.png",
 	}
 
 
