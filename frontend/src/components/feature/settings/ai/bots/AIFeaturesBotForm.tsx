@@ -293,14 +293,8 @@ const ModelSelector = () => {
         revalidateIfStale: false
     })
 
-    // Fetch Azure AI models - Primary: Try database values first
-    const { data: azureModels, error: azureError } = useFrappeGetCall('raven.api.ai_features.get_azure_openai_available_models', undefined, modelProvider === 'Azure AI' ? undefined : null, {
-        revalidateOnFocus: false,
-        revalidateIfStale: false
-    })
-
-    // Fetch Azure AI models - Fallback: Use test connection API if no models from database
-    const { data: azureModelsFromTest, error: azureTestError } = useFrappePostCall<{
+    // Fetch Azure AI models - Use test connection API
+    const { data: azureModels, error: azureError } = useFrappePostCall<{
         message: {
             success: boolean
             message: string
@@ -337,15 +331,10 @@ const ModelSelector = () => {
 
     // Use database models if available, otherwise fallback to test API models
     // Add safer data access with proper type checking
-    const primaryModels = azureModels || []
-    const fallbackModels = azureModelsFromTest?.message?.models?.map((m: any) => m.id) || []
+    const primaryModels = azureModels?.message?.models?.map((m: any) => m.id) || []
     
-    const azureModelsToUse = primaryModels.length > 0 
-        ? primaryModels 
-        : fallbackModels
-
     const models: string[] = modelProvider === 'Local LLM' ? localModels : 
-                            modelProvider === 'Azure AI' ? azureModelsToUse : 
+                            modelProvider === 'Azure AI' ? primaryModels : 
                             openaiModels?.message || []
     
     // Set default model based on provider
@@ -357,11 +346,6 @@ const ModelSelector = () => {
 
     // Filter out empty strings from models
     const validModels = models.filter((model: string) => model && model.trim() !== '')
-
-    // Determine if we're using test API values vs database values
-    const isUsingTestAPI = modelProvider === 'Azure AI' && 
-                          primaryModels.length === 0 && 
-                          fallbackModels.length > 0
 
     return (
         <Stack maxWidth={'480px'}>
@@ -387,7 +371,7 @@ const ModelSelector = () => {
                                     <Select.Item value="no-models" disabled>No models available</Select.Item>
                                 ) : modelProvider === 'Azure AI' ? (
                                     <Select.Item value="no-models" disabled>
-                                        {azureError && azureTestError ? 'Error loading Azure models' : 'No Azure models available'}
+                                        {azureError ? 'Error loading Azure models' : 'No Azure models available'}
                                     </Select.Item>
                                 ) : (
                                     <Select.Item value={defaultModel}>{defaultModel}</Select.Item>
@@ -401,24 +385,20 @@ const ModelSelector = () => {
                 {modelProvider === 'Local LLM'
                     ? 'Select a model available on your local LLM server.'
                     : modelProvider === 'Azure AI'
-                    ? isUsingTestAPI 
-                        ? 'Using current form values (not saved yet). Save your Azure AI settings to persist this configuration.'
-                        : 'Select a model available in your Azure OpenAI resource. Make sure your Azure AI settings are configured correctly.'
+                    ? 'Select a model available in your Azure OpenAI resource. Make sure your Azure AI settings are configured correctly.'
                     : 'The model should be compatible with the OpenAI Assistants API. We recommend using models in the GPT-4 family for best results.'}
             </HelperText>
             {/* Show additional error information for debugging */}
-            {modelProvider === 'Azure AI' && (azureError || azureTestError) && (
+            {modelProvider === 'Azure AI' && azureError && (
                 <HelperText color="red">
-                    {azureError && `Primary API Error: ${typeof azureError === 'object' ? JSON.stringify(azureError) : azureError}`}
-                    {azureError && azureTestError && ' | '}
-                    {azureTestError && `Fallback API Error: ${typeof azureTestError === 'object' ? JSON.stringify(azureTestError) : azureTestError}`}
+                    {azureError && `API Error: ${typeof azureError === 'object' ? JSON.stringify(azureError) : azureError}`}
                 </HelperText>
             )}
             {/* Debug information */}
             {modelProvider === 'Azure AI' && (
                 <HelperText color="gray" size="1">
-                    Debug: Primary models: {primaryModels.length}, Fallback models: {fallbackModels.length}, 
-                    Using: {isUsingTestAPI ? 'Test API' : 'Database API'}
+                    Debug: Models found: {primaryModels.length}, 
+                    Using: Test API
                     <br />
                     Settings: API Key: {ravenSettings?.azure_api_key ? 'Set' : 'Not set'}, 
                     Endpoint: {ravenSettings?.azure_endpoint ? 'Set' : 'Not set'}, 
