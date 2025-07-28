@@ -92,7 +92,7 @@ const getLogo = (workspace: WorkspaceFields) => {
     let logo = workspace.logo || ''
 
     if (!logo && workspace.workspace_name === 'Eden') {
-        logo = '/assets/raven/raven-logo.png'
+        		logo = 'raven/public/raven-logo.png'
     }
 
     return logo

@@ -7,8 +7,8 @@ app_description = "Messaging Application"
 app_email = "support@thecommit.company"
 app_license = "AGPLv3"
 source_link = "https://github.com/The-Commit-Company/Raven"
-app_logo = "/assets/raven/raven-logo.png"
-app_logo_url = "/assets/raven/raven-logo.png"
+app_logo = "raven/public/raven-logo.png"
+app_logo_url = "raven/public/raven-logo.png"
 
 # Includes in <head>
 # ------------------
@@ -22,7 +22,7 @@ app_include_js = "raven.bundle.js"
 add_to_apps_screen = [
 	{
 		"name": "raven",
-		"logo": "/assets/raven/raven-logo.png",
+		"logo": "raven/public/raven-logo.png",
 		"title": "Eden AI",
 		"route": "/raven",
 		"has_permission": "raven.permissions.check_app_permission",
@@ -33,7 +33,7 @@ add_to_apps_screen = [
 sounds = [
 	{
 		"name": "raven_notification",
-		"src": "/assets/raven/sounds/raven_notification.mp3",
+		"src": "raven/public/sounds/raven_notification.mp3",
 		"volume": 0.2,
 	},
 ]

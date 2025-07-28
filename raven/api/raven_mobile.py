@@ -7,10 +7,8 @@ def get_client_id():
 	"""
 	API to fetch the client ID, site name (for socket), App name (for display), Raven version and logo. These will be stored on the device
 	"""
-	app_name = frappe.get_website_settings("app_name") or frappe.get_system_settings("app_name")
-
-	if not app_name or app_name == "Frappe":
-		app_name = "Raven"
+	# Use local hardcoded app name instead of website settings
+	app_name = "Eden"
 
 	all_app_versions = get_versions()
 
@@ -26,7 +24,7 @@ def get_client_id():
 		"raven_version": raven_version,
 		"frappe_version": frappe_version,
 		"logo": frappe.db.get_single_value("Navbar Settings", "app_logo")
-		or "/assets/raven/raven-logo.png",
+		or "raven/public/raven-logo.png",
 	}
 
 
@@ -46,7 +44,7 @@ def create_oauth_client():
 	else:
 		oauth_client = frappe.get_doc("OAuth Client", existing_oauth_client)
 
-	oauth_client.app_name = "Raven Mobile"
+	oauth_client.app_name = "Eden Mobile"
 	oauth_client.scopes = "all openid"
 	oauth_client.redirect_uris = "raven.thecommit.company:"
 	oauth_client.default_redirect_uri = "raven.thecommit.company:"

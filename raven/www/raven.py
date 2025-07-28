@@ -44,21 +44,15 @@ def get_context(context):
 		{"build_version": frappe.utils.get_build_version(), "boot": boot_json, "csrf_token": csrf_token}
 	)
 
-	app_name = frappe.get_website_settings("app_name") or frappe.get_system_settings("app_name")
+	# Use local hardcoded values instead of website settings
+	context["app_name"] = "Eden"
 
-	if app_name and app_name != "Frappe":
-		context["app_name"] = app_name + " | " + "Raven"
-
-	else:
-		context["app_name"] = "Raven"
-
-	favicon = frappe.get_website_settings("favicon")
-
-	context["icon_96"] = favicon or "/assets/raven/manifest/favicon-96x96.png"
-	context["apple_touch_icon"] = favicon or "/assets/raven/manifest/apple-touch-icon.png"
-	context["mask_icon"] = favicon or "/assets/raven/manifest/safari-pinned-tab.svg"
-	context["favicon_svg"] = favicon or "/assets/raven/manifest/favicon.svg"
-	context["favicon_ico"] = favicon or "/assets/raven/manifest/favicon.ico"
+	# Use local favicon paths - pointing to actual local files
+	context["icon_96"] = "raven/public/manifest/favicon-96x96.png"
+	context["apple_touch_icon"] = "raven/public/manifest/apple-touch-icon.png"
+	context["mask_icon"] = "frontend/public/safari-pinned-tab.svg"
+	context["favicon_svg"] = "raven/public/manifest/favicon.svg"
+	context["favicon_ico"] = "raven/public/manifest/favicon.ico"
 	context["sitename"] = boot.get("sitename")
 
 	if frappe.session.user != "Guest":
