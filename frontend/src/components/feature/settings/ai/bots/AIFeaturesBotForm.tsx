@@ -311,6 +311,22 @@ const ModelSelector = () => {
         revalidateIfStale: false
     })
 
+    // Debug logging
+    if (modelProvider === 'Azure AI') {
+        console.log('Azure AI Debug:', {
+            modelProvider,
+            ravenSettings: {
+                azure_api_key: ravenSettings?.azure_api_key ? 'Set' : 'Not set',
+                azure_endpoint: ravenSettings?.azure_endpoint,
+                azure_api_version: ravenSettings?.azure_api_version,
+                azure_deployment_name: ravenSettings?.azure_deployment_name
+            },
+            azureModels,
+            azureError,
+            primaryModels: azureModels?.message?.models?.map((m: any) => m.id) || []
+        })
+    }
+
     // Fetch Local LLM models
     const { data: localModelData } = useFrappeGetCall<{
         message: {
@@ -403,6 +419,10 @@ const ModelSelector = () => {
                     Settings: API Key: {ravenSettings?.azure_api_key ? 'Set' : 'Not set'}, 
                     Endpoint: {ravenSettings?.azure_endpoint ? 'Set' : 'Not set'}, 
                     API Version: {ravenSettings?.azure_api_version ? 'Set' : 'Not set'}
+                    <br />
+                    API Response: {azureModels ? JSON.stringify(azureModels).substring(0, 200) + '...' : 'No response'}
+                    <br />
+                    API Error: {azureError ? JSON.stringify(azureError).substring(0, 200) + '...' : 'No error'}
                 </HelperText>
             )}
         </Stack>
