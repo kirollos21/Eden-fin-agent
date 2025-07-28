@@ -70,7 +70,7 @@ const AIFeaturesBotForm = (props: Props) => {
 
             <Separator className='w-full' />
 
-            {isOpenAI && (
+            {(isOpenAI || modelProvider === 'Azure AI') && (
                 <>
                     <HStack gap='8'>
                         <Stack>
@@ -102,6 +102,7 @@ const AIFeaturesBotForm = (props: Props) => {
                                 File search enables the assistant with knowledge from files that you upload.
                                 <br />
                                 Once a file is uploaded, the assistant automatically decides when to retrieve content based on user requests.
+                                {modelProvider === 'Azure AI' && <><br /><br /><strong>Note:</strong> File search functionality may be limited with Azure AI compared to OpenAI.</>}
                             </HelperText>
                         </Stack>
                         <Stack>
@@ -131,6 +132,7 @@ const AIFeaturesBotForm = (props: Props) => {
                                 Enable this if you want the bot to be able to process files like Excel sheets or data from Insights.
                                 <br /><br />
                                 OpenAI Assistants run code in a sandboxed environment (on OpenAI servers) to do this.
+                                {modelProvider === 'Azure AI' && <><br /><br /><strong>Note:</strong> Code interpreter functionality may be limited with Azure AI compared to OpenAI.</>}
                             </HelperText>
                         </Stack>
                     </HStack>
@@ -177,7 +179,7 @@ const AIFeaturesBotForm = (props: Props) => {
                 <Stack maxWidth={'560px'}>
                     <HStack justify='between' align='center'>
                         <Label htmlFor='temperature'>Temperature <Text as='span' color='gray' weight='regular'>(Default: 1)</Text></Label>
-                        <Code color='gray' size='2' variant='ghost' weight='regular'>{(temperature ?? 1).toFixed(2)}</Code>
+                        <Code color='gray' size='2' variant='ghost' weight='regular'>{(Number(temperature) || 1).toFixed(2)}</Code>
                     </HStack>
                     <Controller control={control} name='temperature' render={({ field }) => (
                         <Slider
@@ -186,7 +188,7 @@ const AIFeaturesBotForm = (props: Props) => {
                             variant='soft'
                             defaultValue={[1]}
                             className='w-full'
-                            value={[field.value ?? 1]}
+                            value={[Number(field.value) || 1]}
                             onValueChange={(value) => field.onChange(value[0])}
                             max={2}
                             min={0}
@@ -200,7 +202,7 @@ const AIFeaturesBotForm = (props: Props) => {
                 <Stack maxWidth={'560px'}>
                     <HStack justify='between' align='center'>
                         <Label htmlFor='top_p'>Top P <Text as='span' color='gray' weight='regular'>(Default: 1)</Text></Label>
-                        <Code color='gray' size='2' variant='ghost' weight='regular'>{(top_p ?? 1).toFixed(2)}</Code>
+                        <Code color='gray' size='2' variant='ghost' weight='regular'>{(Number(top_p) || 1).toFixed(2)}</Code>
                     </HStack>
                     <Controller control={control} name='top_p' render={({ field }) => (
                         <Slider
@@ -209,7 +211,7 @@ const AIFeaturesBotForm = (props: Props) => {
                             variant='soft'
                             className='w-full'
                             defaultValue={[1]}
-                            value={[field.value ?? 1]}
+                            value={[Number(field.value) || 1]}
                             onValueChange={(value) => field.onChange(value[0])}
                             max={1}
                             min={0}
@@ -292,7 +294,7 @@ const ModelSelector = () => {
     })
 
     // Fetch Azure AI models
-    const { data: azureModels } = useFrappeGetCall('raven.api.ai_features.get_azure_openai_available_models', undefined, modelProvider === 'Azure AI' ? undefined : null, {
+    const { data: azureModels, error: azureError } = useFrappeGetCall('raven.api.ai_features.get_azure_openai_available_models', undefined, modelProvider === 'Azure AI' ? undefined : null, {
         revalidateOnFocus: false,
         revalidateIfStale: false
     })
@@ -316,13 +318,14 @@ const ModelSelector = () => {
     if (!is_ai_bot) return null
 
     const models: string[] = modelProvider === 'Local LLM' ? localModels : 
-                            modelProvider === 'Azure AI' ? (azureModels?.message || []) : 
+                            modelProvider === 'Azure AI' ? (azureModels || []) : 
                             openaiModels?.message || []
     
+    // Set default model based on provider
     const defaultModel = modelProvider === 'Local LLM'
         ? (localModels[0] || 'default-model')
         : modelProvider === 'Azure AI'
-        ? 'gpt-4o'
+        ? (models[0] || 'gpt-4o')  // Use first available model or fallback
         : 'gpt-4o'
 
     // Filter out empty strings from models
@@ -350,6 +353,10 @@ const ModelSelector = () => {
                                     ))
                                 ) : modelProvider === 'Local LLM' ? (
                                     <Select.Item value="no-models" disabled>No models available</Select.Item>
+                                ) : modelProvider === 'Azure AI' ? (
+                                    <Select.Item value="no-models" disabled>
+                                        {azureError ? 'Error loading Azure models' : 'No Azure models available'}
+                                    </Select.Item>
                                 ) : (
                                     <Select.Item value={defaultModel}>{defaultModel}</Select.Item>
                                 )}
@@ -362,7 +369,7 @@ const ModelSelector = () => {
                 {modelProvider === 'Local LLM'
                     ? 'Select a model available on your local LLM server.'
                     : modelProvider === 'Azure AI'
-                    ? 'Select a model available in your Azure OpenAI resource.'
+                    ? 'Select a model available in your Azure OpenAI resource. Make sure your Azure AI settings are configured correctly.'
                     : 'The model should be compatible with the OpenAI Assistants API. We recommend using models in the GPT-4 family for best results.'}
             </HelperText>
         </Stack>

@@ -11,7 +11,7 @@ def get_instruction_preview(instruction):
 	"""
 	frappe.has_permission(doctype="Raven Bot", ptype="write", throw=True)
 
-	instructions = frappe.render_template(instruction, get_variables_for_instructions())
+	instructions = frappe.render_templateist(instruction, get_variables_for_instructions())
 	return instructions
 
 
@@ -149,23 +149,42 @@ def get_azure_openai_available_models():
 	frappe.has_permission(doctype="Raven Bot", ptype="read", throw=True)
 	
 	try:
-		from raven.ai.openai_client import get_azure_openai_models
+		# Get current Raven Settings
+		raven_settings = frappe.get_cached_doc("Raven Settings")
+		
+		if not raven_settings.enable_ai_integration:
+			return []
+			
+		if not raven_settings.enable_azure_ai:
+			return []
 
-		models = get_azure_openai_models()
+		azure_api_key = raven_settings.get_password("azure_api_key")
+		azure_endpoint = (raven_settings.azure_endpoint or "").strip()
+		azure_api_version = (raven_settings.azure_api_version or "").strip()
 
-		valid_prefixes = ["gpt-4", "gpt-3.5", "o1", "o3-mini"]
+		if not azure_api_key or not azure_endpoint or not azure_api_version:
+			return []
 
-		# Model should not contain these words
-		invalid_models = ["realtime", "transcribe", "search", "audio"]
+		# Create Azure OpenAI client
+		from openai import AzureOpenAI
+		
+		client = AzureOpenAI(
+			api_key=azure_api_key,
+			api_version=azure_api_version,
+			azure_endpoint=azure_endpoint
+		)
 
-		compatible_models = []
-
-		for model in models:
-			if any(model.id.startswith(prefix) for prefix in valid_prefixes):
-				if not any(word in model.id for word in invalid_models):
-					compatible_models.append(model.id)
-
-		return compatible_models
+		# Get all models
+		models = client.models.list()
+		
+		# Return all model IDs without filtering
+		# Let the user choose which model they want to use
+		model_ids = [model.id for model in models.data]
+		
+		return model_ids
+		
 	except Exception as e:
+		# Log the error for debugging
+		frappe.log_error(f"Error fetching Azure OpenAI models: {str(e)}", "Azure OpenAI Models Error")
 		# Return empty list if Azure AI is not configured or enabled
 		return []
