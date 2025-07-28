@@ -293,8 +293,26 @@ const ModelSelector = () => {
         revalidateIfStale: false
     })
 
-    // Fetch Azure AI models
+    // Fetch Azure AI models - Primary: Try database values first
     const { data: azureModels, error: azureError } = useFrappeGetCall('raven.api.ai_features.get_azure_openai_available_models', undefined, modelProvider === 'Azure AI' ? undefined : null, {
+        revalidateOnFocus: false,
+        revalidateIfStale: false
+    })
+
+    // Fetch Azure AI models - Fallback: Use test connection API if no models from database
+    const { data: azureModelsFromTest, error: azureTestError } = useFrappePostCall<{
+        message: {
+            success: boolean
+            message: string
+            models?: Array<{ id: string }>
+        }
+    }>('raven.api.ai_features.test_llm_configuration', {
+        provider: 'Azure AI',
+        api_key: ravenSettings?.azure_api_key,
+        endpoint: ravenSettings?.azure_endpoint,
+        api_version: ravenSettings?.azure_api_version,
+        deployment_name: ravenSettings?.azure_deployment_name
+    }, modelProvider === 'Azure AI' && (!azureModels?.message || azureModels.message.length === 0) ? undefined : null, {
         revalidateOnFocus: false,
         revalidateIfStale: false
     })
@@ -317,8 +335,13 @@ const ModelSelector = () => {
 
     if (!is_ai_bot) return null
 
+    // Use database models if available, otherwise fallback to test API models
+    const azureModelsToUse = azureModels?.message && azureModels.message.length > 0 
+        ? azureModels.message 
+        : azureModelsFromTest?.message?.models?.map(m => m.id) || []
+
     const models: string[] = modelProvider === 'Local LLM' ? localModels : 
-                            modelProvider === 'Azure AI' ? (azureModels?.message || []) : 
+                            modelProvider === 'Azure AI' ? azureModelsToUse : 
                             openaiModels?.message || []
     
     // Set default model based on provider
@@ -330,6 +353,12 @@ const ModelSelector = () => {
 
     // Filter out empty strings from models
     const validModels = models.filter(model => model && model.trim() !== '')
+
+    // Determine if we're using test API values vs database values
+    const isUsingTestAPI = modelProvider === 'Azure AI' && 
+                          (!azureModels?.message || azureModels.message.length === 0) && 
+                          azureModelsFromTest?.message?.models && 
+                          azureModelsFromTest.message.models.length > 0
 
     return (
         <Stack maxWidth={'480px'}>
@@ -355,7 +384,7 @@ const ModelSelector = () => {
                                     <Select.Item value="no-models" disabled>No models available</Select.Item>
                                 ) : modelProvider === 'Azure AI' ? (
                                     <Select.Item value="no-models" disabled>
-                                        {azureError ? 'Error loading Azure models' : 'No Azure models available'}
+                                        {azureError && azureTestError ? 'Error loading Azure models' : 'No Azure models available'}
                                     </Select.Item>
                                 ) : (
                                     <Select.Item value={defaultModel}>{defaultModel}</Select.Item>
@@ -369,7 +398,9 @@ const ModelSelector = () => {
                 {modelProvider === 'Local LLM'
                     ? 'Select a model available on your local LLM server.'
                     : modelProvider === 'Azure AI'
-                    ? 'Select a model available in your Azure OpenAI resource. Make sure your Azure AI settings are configured correctly.'
+                    ? isUsingTestAPI 
+                        ? 'Using current form values (not saved yet). Save your Azure AI settings to persist this configuration.'
+                        : 'Select a model available in your Azure OpenAI resource. Make sure your Azure AI settings are configured correctly.'
                     : 'The model should be compatible with the OpenAI Assistants API. We recommend using models in the GPT-4 family for best results.'}
             </HelperText>
         </Stack>
