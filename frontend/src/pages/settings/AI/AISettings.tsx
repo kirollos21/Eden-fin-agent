@@ -239,7 +239,7 @@ const AzureAISection = () => {
     const enableAzureAI = watch('enable_azure_ai')
     const azureApiKey = watch('azure_api_key')
     const azureEndpoint = watch('azure_endpoint')
-    const azureApiVersion = watch('azure_api_version')
+    const azureDeploymentName = watch('azure_deployment_name')
 
     const { call: testConnection, loading: testing } = useFrappePostCall<{
         message: {
@@ -257,12 +257,17 @@ const AzureAISection = () => {
             return
         }
 
+        if (!azureDeploymentName) {
+            toast.error('Please enter an Azure Deployment Name')
+            return
+        }
+
         try {
             const result = await testConnection({
                 provider: 'Azure AI',
                 api_key: azureApiKey,
                 endpoint: azureEndpoint,
-                api_version: azureApiVersion
+                deployment_name: azureDeploymentName
             })
 
             setTestResult({
@@ -341,19 +346,19 @@ const AzureAISection = () => {
                     </Box>
 
                     <Box>
-                        <Label htmlFor='azure_api_version' isRequired>Azure API Version</Label>
+                        <Label htmlFor='azure_deployment_name' isRequired>Azure Deployment Name</Label>
                         <TextField.Root
                             className={'w-48 sm:w-96'}
-                            id='azure_api_version'
+                            id='azure_deployment_name'
                             required
                             autoComplete='off'
-                            placeholder='2024-02-15-preview'
-                            {...register('azure_api_version', {
-                                required: enableAzureAI ? "Please add your Azure API Version" : false,
+                            placeholder='my-deployment'
+                            {...register('azure_deployment_name', {
+                                required: enableAzureAI ? "Please add your Azure Deployment Name" : false,
                             })}
-                            aria-invalid={errors.azure_api_version ? 'true' : 'false'}
+                            aria-invalid={errors.azure_deployment_name ? 'true' : 'false'}
                         />
-                        {errors?.azure_api_version && <ErrorText>{errors.azure_api_version?.message}</ErrorText>}
+                        {errors?.azure_deployment_name && <ErrorText>{errors.azure_deployment_name?.message}</ErrorText>}
                     </Box>
 
                     <Box>

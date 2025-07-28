@@ -67,7 +67,7 @@ def get_openai_available_models():
 
 
 @frappe.whitelist()
-def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_key: str = None, endpoint: str = None, api_version: str = None):
+def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_key: str = None, endpoint: str = None, api_version: str = None, deployment_name: str = None):
 	"""
 	Test LLM configuration (OpenAI, Azure AI, or Local LLM)
 	"""
@@ -93,10 +93,27 @@ def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_ke
 				}
 
 		elif provider == "Azure AI":
-			# Test Azure AI configuration
-			from raven.ai.openai_client import get_azure_openai_client
+			# Test Azure AI configuration with provided parameters
+			if not api_key:
+				return {"success": False, "message": "Azure API key is required"}
+			if not endpoint:
+				return {"success": False, "message": "Azure endpoint is required"}
+			if not deployment_name:
+				return {"success": False, "message": "Azure deployment name is required"}
 
-			client = get_azure_openai_client()
+			# Create client with provided parameters
+			from openai import OpenAI
+			
+			# Construct the base URL with deployment name
+			# Remove trailing slash from endpoint if present
+			endpoint = endpoint.rstrip('/')
+			base_url = f"{endpoint}/openai/deployments/{deployment_name}"
+			
+			client = OpenAI(
+				api_key=api_key,
+				base_url=base_url
+			)
+			
 			# Try to list models
 			models = client.models.list()
 			return {
@@ -106,10 +123,14 @@ def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_ke
 			}
 
 		elif provider == "OpenAI":
-			# Test OpenAI configuration
-			from raven.ai.openai_client import get_open_ai_client
+			# Test OpenAI configuration with provided parameters
+			if not api_key:
+				return {"success": False, "message": "OpenAI API key is required"}
 
-			client = get_open_ai_client()
+			# Create client with provided parameters
+			from openai import OpenAI
+			client = OpenAI(api_key=api_key)
+			
 			# Try to list models
 			models = client.models.list()
 			return {
@@ -128,20 +149,25 @@ def get_azure_openai_available_models():
 	API to get the available Azure OpenAI models for assistants
 	"""
 	frappe.has_permission(doctype="Raven Bot", ptype="read", throw=True)
-	from raven.ai.openai_client import get_azure_openai_models
+	
+	try:
+		from raven.ai.openai_client import get_azure_openai_models
 
-	models = get_azure_openai_models()
+		models = get_azure_openai_models()
 
-	valid_prefixes = ["gpt-4", "gpt-3.5", "o1", "o3-mini"]
+		valid_prefixes = ["gpt-4", "gpt-3.5", "o1", "o3-mini"]
 
-	# Model should not contain these words
-	invalid_models = ["realtime", "transcribe", "search", "audio"]
+		# Model should not contain these words
+		invalid_models = ["realtime", "transcribe", "search", "audio"]
 
-	compatible_models = []
+		compatible_models = []
 
-	for model in models:
-		if any(model.id.startswith(prefix) for prefix in valid_prefixes):
-			if not any(word in model.id for word in invalid_models):
-				compatible_models.append(model.id)
+		for model in models:
+			if any(model.id.startswith(prefix) for prefix in valid_prefixes):
+				if not any(word in model.id for word in invalid_models):
+					compatible_models.append(model.id)
 
-	return compatible_models
+		return compatible_models
+	except Exception as e:
+		# Return empty list if Azure AI is not configured or enabled
+		return []

@@ -22,6 +22,7 @@
   "azure_api_key",
   "azure_endpoint",
   "azure_api_version",
+  "azure_deployment_name",
   "column_break_occp",
   "enable_local_llm",
   "local_llm_provider",
@@ -183,6 +184,14 @@
    "label": "Azure API Version",
    "default": "2024-02-15-preview",
    "mandatory_depends_on": "eval:doc.enable_azure_ai;"
+  },
+  {
+   "depends_on": "eval:doc.enable_azure_ai;",
+   "fieldname": "azure_deployment_name",
+   "fieldtype": "Data",
+   "label": "Azure Deployment Name",
+   "mandatory_depends_on": "eval:doc.enable_azure_ai;",
+   "placeholder": "gpt-4o"
   },
   {
    "fieldname": "column_break_occp",

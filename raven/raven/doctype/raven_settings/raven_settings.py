@@ -53,6 +53,7 @@ class RavenSettings(Document):
 		azure_api_key: DF.Password | None
 		azure_endpoint: DF.Data | None
 		azure_api_version: DF.Data | None
+		azure_deployment_name: DF.Data | None
 	# end: auto-generated types
 
 	def validate(self):
@@ -85,6 +86,8 @@ class RavenSettings(Document):
 				frappe.throw(_("Please enter the Azure Endpoint"))
 			if not self.azure_api_version:
 				frappe.throw(_("Please enter the Azure API Version"))
+			if not self.azure_deployment_name:
+				frappe.throw(_("Please enter the Azure Deployment Name"))
 
 		if self.enable_google_apis:
 			if not self.google_project_id:

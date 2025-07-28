@@ -39,19 +39,23 @@ def get_azure_openai_client():
 
 	azure_api_key = raven_settings.get_password("azure_api_key")
 	azure_endpoint = (raven_settings.azure_endpoint or "").strip()
-	azure_api_version = (raven_settings.azure_api_version or "").strip()
+	azure_deployment_name = (raven_settings.azure_deployment_name or "").strip()
 
 	if not azure_api_key:
 		frappe.throw(_("Azure API key is not configured"))
 	if not azure_endpoint:
 		frappe.throw(_("Azure endpoint is not configured"))
-	if not azure_api_version:
-		frappe.throw(_("Azure API version is not configured"))
+	if not azure_deployment_name:
+		frappe.throw(_("Azure deployment name is not configured"))
+
+	# Construct the base URL with deployment name
+	# Remove trailing slash from endpoint if present
+	azure_endpoint = azure_endpoint.rstrip('/')
+	base_url = f"{azure_endpoint}/openai/deployments/{azure_deployment_name}"
 
 	client_args = {
 		"api_key": azure_api_key.strip(),
-		"azure_endpoint": azure_endpoint.strip(),
-		"api_version": azure_api_version.strip()
+		"base_url": base_url
 	}
 
 	return OpenAI(**client_args)

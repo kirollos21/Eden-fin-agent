@@ -56,19 +56,23 @@ class RavenAgentManager:
 			# Client for Azure AI
 			azure_api_key = self.settings.get_password("azure_api_key")
 			azure_endpoint = (self.settings.azure_endpoint or "").strip()
-			azure_api_version = (self.settings.azure_api_version or "").strip()
+			azure_deployment_name = (self.settings.azure_deployment_name or "").strip()
 
 			if not azure_api_key:
 				frappe.throw(_("Azure API key is not configured in Raven Settings"))
 			if not azure_endpoint:
 				frappe.throw(_("Azure endpoint is not configured in Raven Settings"))
-			if not azure_api_version:
-				frappe.throw(_("Azure API version is not configured in Raven Settings"))
+			if not azure_deployment_name:
+				frappe.throw(_("Azure deployment name is not configured in Raven Settings"))
+
+			# Construct the base URL with deployment name
+			# Remove trailing slash from endpoint if present
+			azure_endpoint = azure_endpoint.rstrip('/')
+			base_url = f"{azure_endpoint}/openai/deployments/{azure_deployment_name}"
 
 			client = AsyncOpenAI(
 				api_key=azure_api_key,
-				azure_endpoint=azure_endpoint,
-				api_version=azure_api_version,
+				base_url=base_url,
 			)
 		else:
 			# Standard OpenAI client

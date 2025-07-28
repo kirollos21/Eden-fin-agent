@@ -35,6 +35,8 @@ export interface RavenSettings{
 	azure_endpoint?: string
 	/**	Azure API Version : Data	*/
 	azure_api_version?: string
+	/**	Azure Deployment Name : Data	*/
+	azure_deployment_name?: string
 	/**	Enable Local LLM : Check	*/
 	enable_local_llm?: 0 | 1
 	/**	Local LLM Provider : Select	*/
