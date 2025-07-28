@@ -18,6 +18,11 @@
   "openai_organisation_id",
   "openai_api_key",
   "openai_project_id",
+  "enable_azure_ai",
+  "azure_api_key",
+  "azure_endpoint",
+  "azure_api_version",
+  "azure_deployment_name",
   "column_break_occp",
   "enable_local_llm",
   "local_llm_provider",
@@ -149,6 +154,44 @@
    "fieldname": "openai_project_id",
    "fieldtype": "Data",
    "label": "OpenAI Project ID"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_ai_integration",
+   "fieldname": "enable_azure_ai",
+   "fieldtype": "Check",
+   "label": "Enable Azure AI Foundry"
+  },
+  {
+   "depends_on": "eval:doc.enable_azure_ai;",
+   "fieldname": "azure_api_key",
+   "fieldtype": "Password",
+   "label": "Azure API Key",
+   "mandatory_depends_on": "eval:doc.enable_azure_ai;"
+  },
+  {
+   "depends_on": "eval:doc.enable_azure_ai;",
+   "fieldname": "azure_endpoint",
+   "fieldtype": "Data",
+   "label": "Azure Endpoint",
+   "mandatory_depends_on": "eval:doc.enable_azure_ai;",
+   "placeholder": "https://your-resource.openai.azure.com/"
+  },
+  {
+   "depends_on": "eval:doc.enable_azure_ai;",
+   "fieldname": "azure_api_version",
+   "fieldtype": "Data",
+   "label": "Azure API Version",
+   "default": "2024-02-15-preview",
+   "mandatory_depends_on": "eval:doc.enable_azure_ai;"
+  },
+  {
+   "depends_on": "eval:doc.enable_azure_ai;",
+   "fieldname": "azure_deployment_name",
+   "fieldtype": "Data",
+   "label": "Azure Deployment Name",
+   "mandatory_depends_on": "eval:doc.enable_azure_ai;",
+   "placeholder": "gpt-4o"
   },
   {
    "fieldname": "column_break_occp",

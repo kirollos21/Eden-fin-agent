@@ -11,7 +11,7 @@ def get_instruction_preview(instruction):
 	"""
 	frappe.has_permission(doctype="Raven Bot", ptype="write", throw=True)
 
-	instructions = frappe.render_template(instruction, get_variables_for_instructions())
+	instructions = frappe.render_templateist(instruction, get_variables_for_instructions())
 	return instructions
 
 
@@ -67,9 +67,9 @@ def get_openai_available_models():
 
 
 @frappe.whitelist()
-def test_llm_configuration(provider: str = "OpenAI", api_url: str = None):
+def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_key: str = None, endpoint: str = None, api_version: str = None, deployment_name: str = None):
 	"""
-	Test LLM configuration (OpenAI or Local LLM)
+	Test LLM configuration (OpenAI, Azure AI, or Local LLM)
 	"""
 	frappe.has_permission(doctype="Raven Settings", ptype="write", throw=True)
 
@@ -92,11 +92,43 @@ def test_llm_configuration(provider: str = "OpenAI", api_url: str = None):
 					"message": f"Failed to connect to {api_url}. Status: {response.status_code}",
 				}
 
-		elif provider == "OpenAI":
-			# Test OpenAI configuration
-			from raven.ai.openai_client import get_open_ai_client
+		elif provider == "Azure AI":
+			# Test Azure AI configuration with provided parameters using old AzureOpenAI approach
+			if not api_key:
+				return {"success": False, "message": "Azure API key is required"}
+			if not endpoint:
+				return {"success": False, "message": "Azure endpoint is required"}
+			if not api_version:
+				return {"success": False, "message": "Azure API version is required"}
+			if not deployment_name:
+				return {"success": False, "message": "Azure deployment name is required"}
 
-			client = get_open_ai_client()
+			# Create client with provided parameters using old AzureOpenAI approach
+			from openai import AzureOpenAI
+			
+			client = AzureOpenAI(
+				api_key=api_key,
+				api_version=api_version,
+				azure_endpoint=endpoint
+			)
+			
+			# Try to list models
+			models = client.models.list()
+			return {
+				"success": True,
+				"message": "Successfully connected to Azure AI",
+				"models": [{"id": m.id} for m in models.data[:5]],  # Return first 5 models
+			}
+
+		elif provider == "OpenAI":
+			# Test OpenAI configuration with provided parameters
+			if not api_key:
+				return {"success": False, "message": "OpenAI API key is required"}
+
+			# Create client with provided parameters
+			from openai import OpenAI
+			client = OpenAI(api_key=api_key)
+			
 			# Try to list models
 			models = client.models.list()
 			return {
@@ -107,3 +139,52 @@ def test_llm_configuration(provider: str = "OpenAI", api_url: str = None):
 
 	except Exception as e:
 		return {"success": False, "message": f"Connection failed: {str(e)}"}
+
+
+@frappe.whitelist()
+def get_azure_openai_available_models():
+	"""
+	API to get the available Azure OpenAI models for assistants
+	"""
+	frappe.has_permission(doctype="Raven Bot", ptype="read", throw=True)
+	
+	try:
+		# Get current Raven Settings
+		raven_settings = frappe.get_cached_doc("Raven Settings")
+		
+		if not raven_settings.enable_ai_integration:
+			return []
+			
+		if not raven_settings.enable_azure_ai:
+			return []
+
+		azure_api_key = raven_settings.get_password("azure_api_key")
+		azure_endpoint = (raven_settings.azure_endpoint or "").strip()
+		azure_api_version = (raven_settings.azure_api_version or "").strip()
+
+		if not azure_api_key or not azure_endpoint or not azure_api_version:
+			return []
+
+		# Create Azure OpenAI client
+		from openai import AzureOpenAI
+		
+		client = AzureOpenAI(
+			api_key=azure_api_key,
+			api_version=azure_api_version,
+			azure_endpoint=azure_endpoint
+		)
+
+		# Get all models
+		models = client.models.list()
+		
+		# Return all model IDs without filtering
+		# Let the user choose which model they want to use
+		model_ids = [model.id for model in models.data]
+		
+		return model_ids
+		
+	except Exception as e:
+		# Log the error for debugging
+		frappe.log_error(f"Error fetching Azure OpenAI models: {str(e)}", "Azure OpenAI Models Error")
+		# Return empty list if Azure AI is not configured or enabled
+		return []
