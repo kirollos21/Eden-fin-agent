@@ -53,7 +53,7 @@ class RavenAgentManager:
 				base_url=self.settings.local_llm_api_url,
 			)
 		elif self.bot_doc.model_provider == "Azure AI" and self.settings.enable_azure_ai:
-			# Client for Azure AI
+			# Client for Azure AI using old AzureOpenAI approach
 			azure_api_key = self.settings.get_password("azure_api_key")
 			azure_endpoint = (self.settings.azure_endpoint or "").strip()
 			azure_deployment_name = (self.settings.azure_deployment_name or "").strip()
@@ -65,14 +65,13 @@ class RavenAgentManager:
 			if not azure_deployment_name:
 				frappe.throw(_("Azure deployment name is not configured in Raven Settings"))
 
-			# Construct the base URL with deployment name
-			# Remove trailing slash from endpoint if present
-			azure_endpoint = azure_endpoint.rstrip('/')
-			base_url = f"{azure_endpoint}/openai/deployments/{azure_deployment_name}"
-
-			client = AsyncOpenAI(
+			# Use the old AzureOpenAI client approach
+			from openai import AzureOpenAI
+			
+			client = AzureOpenAI(
 				api_key=azure_api_key,
-				base_url=base_url,
+				api_version="2024-02-15-preview",
+				azure_endpoint=azure_endpoint,
 			)
 		else:
 			# Standard OpenAI client

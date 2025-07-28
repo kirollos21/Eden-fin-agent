@@ -239,6 +239,7 @@ const AzureAISection = () => {
     const enableAzureAI = watch('enable_azure_ai')
     const azureApiKey = watch('azure_api_key')
     const azureEndpoint = watch('azure_endpoint')
+    const azureApiVersion = watch('azure_api_version')
     const azureDeploymentName = watch('azure_deployment_name')
 
     const { call: testConnection, loading: testing } = useFrappePostCall<{
@@ -257,6 +258,11 @@ const AzureAISection = () => {
             return
         }
 
+        if (!azureApiVersion) {
+            toast.error('Please enter an Azure API Version')
+            return
+        }
+
         if (!azureDeploymentName) {
             toast.error('Please enter an Azure Deployment Name')
             return
@@ -267,6 +273,7 @@ const AzureAISection = () => {
                 provider: 'Azure AI',
                 api_key: azureApiKey,
                 endpoint: azureEndpoint,
+                api_version: azureApiVersion,
                 deployment_name: azureDeploymentName
             })
 
@@ -343,6 +350,22 @@ const AzureAISection = () => {
                             aria-invalid={errors.azure_endpoint ? 'true' : 'false'}
                         />
                         {errors?.azure_endpoint && <ErrorText>{errors.azure_endpoint?.message}</ErrorText>}
+                    </Box>
+
+                    <Box>
+                        <Label htmlFor='azure_api_version' isRequired>Azure API Version</Label>
+                        <TextField.Root
+                            className={'w-48 sm:w-96'}
+                            id='azure_api_version'
+                            required
+                            autoComplete='off'
+                            placeholder='2024-02-15-preview'
+                            {...register('azure_api_version', {
+                                required: enableAzureAI ? "Please add your Azure API Version" : false,
+                            })}
+                            aria-invalid={errors.azure_api_version ? 'true' : 'false'}
+                        />
+                        {errors?.azure_api_version && <ErrorText>{errors.azure_api_version?.message}</ErrorText>}
                     </Box>
 
                     <Box>

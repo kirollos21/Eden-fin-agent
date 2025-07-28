@@ -93,25 +93,23 @@ def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_ke
 				}
 
 		elif provider == "Azure AI":
-			# Test Azure AI configuration with provided parameters
+			# Test Azure AI configuration with provided parameters using old AzureOpenAI approach
 			if not api_key:
 				return {"success": False, "message": "Azure API key is required"}
 			if not endpoint:
 				return {"success": False, "message": "Azure endpoint is required"}
+			if not api_version:
+				return {"success": False, "message": "Azure API version is required"}
 			if not deployment_name:
 				return {"success": False, "message": "Azure deployment name is required"}
 
-			# Create client with provided parameters
-			from openai import OpenAI
+			# Create client with provided parameters using old AzureOpenAI approach
+			from openai import AzureOpenAI
 			
-			# Construct the base URL with deployment name
-			# Remove trailing slash from endpoint if present
-			endpoint = endpoint.rstrip('/')
-			base_url = f"{endpoint}/openai/deployments/{deployment_name}"
-			
-			client = OpenAI(
+			client = AzureOpenAI(
 				api_key=api_key,
-				base_url=base_url
+				api_version=api_version,
+				azure_endpoint=endpoint
 			)
 			
 			# Try to list models

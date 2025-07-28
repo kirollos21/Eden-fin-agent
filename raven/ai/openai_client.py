@@ -26,7 +26,7 @@ def get_open_ai_client():
 
 def get_azure_openai_client():
 	"""
-	Get the Azure OpenAI client
+	Get the Azure OpenAI client using the old AzureOpenAI approach
 	"""
 
 	raven_settings = frappe.get_cached_doc("Raven Settings")
@@ -48,17 +48,16 @@ def get_azure_openai_client():
 	if not azure_deployment_name:
 		frappe.throw(_("Azure deployment name is not configured"))
 
-	# Construct the base URL with deployment name
-	# Remove trailing slash from endpoint if present
-	azure_endpoint = azure_endpoint.rstrip('/')
-	base_url = f"{azure_endpoint}/openai/deployments/{azure_deployment_name}"
-
+	# Use the old AzureOpenAI client approach
+	from openai import AzureOpenAI
+	
 	client_args = {
 		"api_key": azure_api_key.strip(),
-		"base_url": base_url
+		"api_version": "2024-02-15-preview",
+		"azure_endpoint": azure_endpoint.strip()
 	}
 
-	return OpenAI(**client_args)
+	return AzureOpenAI(**client_args)
 
 
 def get_openai_models():
