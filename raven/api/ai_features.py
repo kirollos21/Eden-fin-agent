@@ -1,5 +1,6 @@
 import frappe
 import openai
+from frappe import _
 
 from raven.ai.handler import get_variables_for_instructions
 
@@ -66,12 +67,16 @@ def get_openai_available_models():
 	return compatible_models
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_key: str = None, endpoint: str = None, api_version: str = None, deployment_name: str = None):
 	"""
 	Test LLM configuration (OpenAI, Azure AI, or Local LLM)
 	"""
-	frappe.has_permission(doctype="Raven Settings", ptype="write", throw=True)
+	# For guest users or users without specific permissions, we still allow testing
+	# but only if they provide the necessary credentials
+	user = frappe.session.user
+	if user != "Guest" and not frappe.has_permission(doctype="Raven Settings", ptype="read"):
+		frappe.throw(_("You don't have permission to test LLM configuration"))
 
 	try:
 		if provider == "Local LLM" and api_url:
@@ -185,14 +190,18 @@ def test_llm_configuration(provider: str = "OpenAI", api_url: str = None, api_ke
 		return {"success": False, "message": f"Connection failed: {str(e)}"}
 
 
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def get_azure_openai_available_models():
 	"""
 	API to get the available Azure OpenAI models for assistants
 	Note: Azure OpenAI doesn't support listing models like standard OpenAI.
 	Instead, we return the configured deployment name as the available "model".
 	"""
-	frappe.has_permission(doctype="Raven Bot", ptype="read", throw=True)
+	# For guest users, we allow access if they're testing configurations
+	# For logged-in users, check permissions
+	user = frappe.session.user
+	if user != "Guest" and not (frappe.has_permission(doctype="Raven Bot", ptype="read") or frappe.has_permission(doctype="Raven Settings", ptype="read")):
+		frappe.throw(_("You don't have permission to access Azure OpenAI models"))
 	
 	try:
 		# Get current Raven Settings
