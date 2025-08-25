@@ -293,7 +293,16 @@ const ModelSelector = () => {
         revalidateIfStale: false
     })
 
-    // Fetch Azure AI models - Use test connection API
+    // Fetch Azure AI models - Try the dedicated Azure models API first, then fallback to test API
+    const { data: azureModelsFromAPI } = useFrappeGetCall<{
+        message: string[]
+    }>('raven.api.ai_features.get_azure_openai_available_models', undefined, 
+    modelProvider === 'Azure AI' && ravenSettings?.azure_deployment_name ? undefined : null, {
+        revalidateOnFocus: false,
+        revalidateIfStale: false
+    })
+
+    // Fallback: Use test connection API if the dedicated API doesn't work
     const { data: azureModels, error: azureError } = useFrappePostCall<{
         message: {
             success: boolean
@@ -306,7 +315,7 @@ const ModelSelector = () => {
         endpoint: ravenSettings?.azure_endpoint,
         api_version: ravenSettings?.azure_api_version,
         deployment_name: ravenSettings?.azure_deployment_name
-    }, modelProvider === 'Azure AI' ? undefined : null, {
+    }, modelProvider === 'Azure AI' && ravenSettings?.azure_api_key && !azureModelsFromAPI?.message?.length ? undefined : null, {
         revalidateOnFocus: false,
         revalidateIfStale: false
     })
@@ -321,9 +330,11 @@ const ModelSelector = () => {
                 azure_api_version: ravenSettings?.azure_api_version,
                 azure_deployment_name: ravenSettings?.azure_deployment_name
             },
+            azureModelsFromAPI: azureModelsFromAPI?.message || [],
             azureModels,
             azureError,
-            primaryModels: azureModels?.message?.models?.map((m: any) => m.id) || []
+            primaryModels: azureModels?.message?.models?.map((m: any) => m.id) || [],
+            shouldCallAPI: modelProvider === 'Azure AI' && ravenSettings?.azure_api_key ? 'Yes' : 'No'
         })
     }
 
@@ -347,10 +358,14 @@ const ModelSelector = () => {
 
     // Use database models if available, otherwise fallback to test API models
     // Add safer data access with proper type checking
-    const primaryModels = azureModels?.message?.models?.map((m: any) => m.id) || []
+    const apiModels = azureModels?.message?.models?.map((m: any) => m.id) || []
+    const dedicatedApiModels = azureModelsFromAPI?.message || []
+    
+    // For Azure AI, prefer the dedicated API models, then fallback to test API models
+    const azureAvailableModels = dedicatedApiModels.length > 0 ? dedicatedApiModels : apiModels
     
     const models: string[] = modelProvider === 'Local LLM' ? localModels : 
-                            modelProvider === 'Azure AI' ? primaryModels : 
+                            modelProvider === 'Azure AI' ? azureAvailableModels : 
                             openaiModels?.message || []
     
     // Set default model based on provider
@@ -413,16 +428,48 @@ const ModelSelector = () => {
             {/* Debug information */}
             {modelProvider === 'Azure AI' && (
                 <HelperText color="gray" size="1">
-                    Debug: Models found: {primaryModels.length}, 
-                    Using: Test API
+                    Debug: Dedicated API models: {dedicatedApiModels.length}, Test API models: {apiModels.length}, 
+                    Using: {dedicatedApiModels.length > 0 ? 'Dedicated API' : 'Test API'}
                     <br />
                     Settings: API Key: {ravenSettings?.azure_api_key ? 'Set' : 'Not set'}, 
                     Endpoint: {ravenSettings?.azure_endpoint ? 'Set' : 'Not set'}, 
-                    API Version: {ravenSettings?.azure_api_version ? 'Set' : 'Not set'}
+                    API Version: {ravenSettings?.azure_api_version ? 'Set' : 'Not set'},
+                    Deployment: {ravenSettings?.azure_deployment_name ? 'Set' : 'Not set'}
                     <br />
-                    API Response: {azureModels ? JSON.stringify(azureModels).substring(0, 200) + '...' : 'No response'}
+                    Dedicated API Response: {azureModelsFromAPI ? JSON.stringify(azureModelsFromAPI).substring(0, 200) + '...' : 'No response'}
+                    <br />
+                    Test API Response: {azureModels ? JSON.stringify(azureModels).substring(0, 200) + '...' : 'No response'}
                     <br />
                     API Error: {azureError ? JSON.stringify(azureError).substring(0, 200) + '...' : 'No error'}
+                    <br />
+                    <button 
+                        onClick={async () => {
+                            try {
+                                const response = await fetch('/api/method/raven.api.ai_features.test_llm_configuration', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        provider: 'Azure AI',
+                                        api_key: ravenSettings?.azure_api_key,
+                                        endpoint: ravenSettings?.azure_endpoint,
+                                        api_version: ravenSettings?.azure_api_version,
+                                        deployment_name: ravenSettings?.azure_deployment_name
+                                    })
+                                });
+                                const data = await response.json();
+                                console.log('Manual API Test Response:', data);
+                                alert('Check console for API response');
+                            } catch (error) {
+                                console.error('Manual API Test Error:', error);
+                                alert('API test failed - check console');
+                            }
+                        }}
+                        style={{ padding: '4px 8px', fontSize: '12px', marginTop: '4px' }}
+                    >
+                        Test API Manually
+                    </button>
                 </HelperText>
             )}
         </Stack>
