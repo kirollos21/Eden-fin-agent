@@ -71,10 +71,12 @@ class RavenAgentManager:
 			# Get the configured API version
 			azure_api_version = (self.settings.azure_api_version or "2024-02-15-preview").strip()
 			
+			# Normalize endpoint: remove trailing slash for Azure SDK
+			normalized_endpoint = azure_endpoint.rstrip("/")
 			client = AzureOpenAI(
 				api_key=azure_api_key,
 				api_version=azure_api_version,
-				azure_endpoint=azure_endpoint,
+				azure_endpoint=normalized_endpoint,
 			)
 		else:
 			# Standard OpenAI client
@@ -98,13 +100,22 @@ class RavenAgentManager:
 			# For Azure AI, use deployment name as model parameter
 			if self.bot_doc.model_provider == "Azure AI":
 				model_param = self.settings.azure_deployment_name
+				# AzureOpenAI client is synchronous; run in a thread executor
+				loop = asyncio.get_running_loop()
+				test_response = await loop.run_in_executor(
+					None,
+					lambda: self.client.chat.completions.create(
+						model=model_param,
+						messages=[{"role": "user", "content": "test"}],
+						max_tokens=5,
+					),
+				)
 			else:
 				model_param = self.bot_doc.model
-			
-			# Try a simple completion to test connectivity
-			test_response = await self.client.chat.completions.create(
-				model=model_param, messages=[{"role": "user", "content": "test"}], max_tokens=5
-			)
+				# AsyncOpenAI client supports await
+				test_response = await self.client.chat.completions.create(
+					model=model_param, messages=[{"role": "user", "content": "test"}], max_tokens=5
+				)
 			if not test_response or not test_response.choices:
 				return False
 			return True
@@ -557,9 +568,15 @@ async def handle_ai_request_async(
 					if tools_param:
 						api_params["tools"] = tools_param
 						api_params["tool_choice"] = "auto"
-
-					response = await manager.client.chat.completions.create(**api_params)
-
+					
+					if bot.model_provider == "Azure AI":
+						loop = asyncio.get_running_loop()
+						response = await loop.run_in_executor(
+							None, lambda: manager.client.chat.completions.create(**api_params)
+						)
+					else:
+						response = await manager.client.chat.completions.create(**api_params)
+					
 					if response and response.choices:
 						choice = response.choices[0]
 
@@ -601,13 +618,26 @@ async def handle_ai_request_async(
 									)
 
 								# Make final API call
-								final_response = await manager.client.chat.completions.create(
-									model=model_param,  # Use the same model parameter
-									messages=messages,
-									temperature=agent.model_settings.temperature,
-									top_p=agent.model_settings.top_p,
-									max_tokens=2000,
-								)
+								if bot.model_provider == "Azure AI":
+									loop = asyncio.get_running_loop()
+									final_response = await loop.run_in_executor(
+										None,
+										lambda: manager.client.chat.completions.create(
+											model=model_param,
+											messages=messages,
+											temperature=agent.model_settings.temperature,
+											top_p=agent.model_settings.top_p,
+											max_tokens=2000,
+										),
+									)
+								else:
+									final_response = await manager.client.chat.completions.create(
+										model=model_param,  # Use the same model parameter
+										messages=messages,
+										temperature=agent.model_settings.temperature,
+										top_p=agent.model_settings.top_p,
+										max_tokens=2000,
+									)
 
 								if final_response and final_response.choices:
 									raw_response = final_response.choices[0].message.content
