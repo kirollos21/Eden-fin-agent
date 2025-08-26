@@ -96,7 +96,10 @@ class RavenAgentManager:
 		"""Test API connection before creating agent"""
 		try:
 			# For Azure AI, use deployment name as model parameter
-			model_param = self.settings.azure_deployment_name if self.bot_doc.model_provider == "Azure AI" else self.bot_doc.model
+			if self.bot_doc.model_provider == "Azure AI":
+				model_param = self.settings.azure_deployment_name
+			else:
+				model_param = self.bot_doc.model
 			
 			# Try a simple completion to test connectivity
 			test_response = await self.client.chat.completions.create(
@@ -398,11 +401,17 @@ CRITICAL INSTRUCTIONS FOR TOOL USE:
 		if hasattr(self.bot_doc, "reasoning_effort") and self.bot_doc.reasoning_effort:
 			model_settings.reasoning_effort = self.bot_doc.reasoning_effort
 
+		# For Azure AI, use deployment name as model parameter
+		if self.bot_doc.model_provider == "Azure AI":
+			model_param = self.settings.azure_deployment_name
+		else:
+			model_param = self.bot_doc.model
+
 		# Create agent - ALWAYS pass empty list instead of None for tools
 		agent = Agent(
 			name=self.bot_doc.bot_name,
 			instructions=instructions,
-			model=self.bot_doc.model,
+			model=model_param,
 			tools=self.tools if self.tools else [],  # Pass empty list, not None
 			model_settings=model_settings,
 		)
