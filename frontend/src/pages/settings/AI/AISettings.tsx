@@ -109,12 +109,17 @@ const AISettings = () => {
                             <Tabs.Root defaultValue="openai">
                                 <Tabs.List>
                                     <Tabs.Trigger value="openai">OpenAI</Tabs.Trigger>
+                                    <Tabs.Trigger value="azure">Azure AI</Tabs.Trigger>
                                     <Tabs.Trigger value="local">Local LLM</Tabs.Trigger>
                                 </Tabs.List>
 
                                 <Box mt="4">
                                     <Tabs.Content value="openai">
                                         <OpenAISection />
+                                    </Tabs.Content>
+
+                                    <Tabs.Content value="azure">
+                                        <AzureAISection />
                                     </Tabs.Content>
 
                                     <Tabs.Content value="local">
@@ -223,6 +228,200 @@ const OpenAISection = () => {
             ) : null}
 
             {openaiVersion && <Text color='gray' size='2'>OpenAI Python SDK Version: {openaiVersion.message}</Text>}
+        </Flex>
+    )
+}
+
+const AzureAISection = () => {
+
+    const { watch, control, register, formState: { errors } } = useFormContext<RavenSettings>()
+
+    const enableAzureAI = watch('enable_azure_ai')
+    const azureApiKey = watch('azure_api_key')
+    const azureEndpoint = watch('azure_endpoint')
+    const azureApiVersion = watch('azure_api_version')
+    const azureDeploymentName = watch('azure_deployment_name')
+
+    const { call: testConnection, loading: testing } = useFrappePostCall<{
+        message: {
+            success: boolean
+            message: string
+            models?: Array<{ id: string }>
+        }
+    }>('raven.api.ai_features.test_llm_configuration')
+
+    const [testResult, setTestResult] = useState<{ success: boolean, message: string } | null>(null)
+
+    const handleTestConnection = async () => {
+        if (!azureEndpoint) {
+            toast.error('Please enter an Azure Endpoint')
+            return
+        }
+
+        if (!azureApiVersion) {
+            toast.error('Please enter an Azure API Version')
+            return
+        }
+
+        if (!azureDeploymentName) {
+            toast.error('Please enter an Azure Deployment Name')
+            return
+        }
+
+        // Clear previous test result before making new test
+        setTestResult(null)
+
+        try {
+            const result = await testConnection({
+                provider: 'Azure AI',
+                api_key: azureApiKey,
+                endpoint: azureEndpoint,
+                api_version: azureApiVersion,
+                deployment_name: azureDeploymentName
+            })
+
+            setTestResult({
+                success: result.message.success,
+                message: result.message.message
+            })
+
+            if (result.message.success) {
+                toast.success('Connection successful!')
+            } else {
+                toast.error(result.message.message)
+            }
+        } catch (error) {
+            console.error('Test connection error:', error)
+            toast.error('Failed to test connection')
+            setTestResult({
+                success: false,
+                message: 'Failed to test connection'
+            })
+        }
+    }
+
+    return (
+        <Flex direction="column" gap="4">
+            <Flex direction={'column'} gap='2'>
+                <Text as="label" size="2">
+                    <Flex gap="2">
+                        <Controller
+                            control={control}
+                            name='enable_azure_ai'
+                            render={({ field }) => (
+                                <Checkbox
+                                    checked={field.value ? true : false}
+                                    name={field.name}
+                                    disabled={field.disabled}
+                                    onCheckedChange={(v) => field.onChange(v ? 1 : 0)}
+                                />
+                            )} />
+                        Enable Azure AI Foundry
+                    </Flex>
+                </Text>
+            </Flex>
+
+            {enableAzureAI ? (
+                <>
+                    <Box>
+                        <Label htmlFor='azure_api_key' isRequired>Azure API Key</Label>
+                        <TextField.Root
+                            className={'w-48 sm:w-96'}
+                            id='azure_api_key'
+                            required
+                            type='password'
+                            autoComplete='off'
+                            placeholder='••••••••••••••••••••••••••••••••'
+                            {...register('azure_api_key', {
+                                required: enableAzureAI ? "Please add your Azure API Key" : false,
+                            })}
+                            aria-invalid={errors.azure_api_key ? 'true' : 'false'}
+                        />
+                        {errors?.azure_api_key && <ErrorText>{errors.azure_api_key?.message}</ErrorText>}
+                    </Box>
+
+                    <Box>
+                        <Label htmlFor='azure_endpoint' isRequired>Azure Endpoint</Label>
+                        <TextField.Root
+                            className={'w-48 sm:w-96'}
+                            id='azure_endpoint'
+                            required
+                            autoComplete='off'
+                            placeholder='https://your-resource.openai.azure.com/'
+                            {...register('azure_endpoint', {
+                                required: enableAzureAI ? "Please add your Azure Endpoint" : false,
+                            })}
+                            aria-invalid={errors.azure_endpoint ? 'true' : 'false'}
+                        />
+                        {errors?.azure_endpoint && <ErrorText>{errors.azure_endpoint?.message}</ErrorText>}
+                    </Box>
+
+                    <Box>
+                        <Label htmlFor='azure_api_version' isRequired>Azure API Version</Label>
+                        <TextField.Root
+                            className={'w-48 sm:w-96'}
+                            id='azure_api_version'
+                            required
+                            autoComplete='off'
+                            placeholder='2024-02-15-preview'
+                            {...register('azure_api_version', {
+                                required: enableAzureAI ? "Please add your Azure API Version" : false,
+                            })}
+                            aria-invalid={errors.azure_api_version ? 'true' : 'false'}
+                        />
+                        {errors?.azure_api_version && <ErrorText>{errors.azure_api_version?.message}</ErrorText>}
+                    </Box>
+
+                    <Box>
+                        <Label htmlFor='azure_deployment_name' isRequired>Azure Deployment Name</Label>
+                        <TextField.Root
+                            className={'w-48 sm:w-96'}
+                            id='azure_deployment_name'
+                            required
+                            autoComplete='off'
+                            placeholder='my-deployment'
+                            {...register('azure_deployment_name', {
+                                required: enableAzureAI ? "Please add your Azure Deployment Name" : false,
+                            })}
+                            aria-invalid={errors.azure_deployment_name ? 'true' : 'false'}
+                        />
+                        {errors?.azure_deployment_name && <ErrorText>{errors.azure_deployment_name?.message}</ErrorText>}
+                    </Box>
+
+                    <Box>
+                        <Button
+                            type="button"
+                            variant="soft"
+                            className='not-cal'
+                            onClick={handleTestConnection}
+                            disabled={testing || !azureEndpoint}
+                        >
+                            {testing && <Loader className="text-gray-900" />}
+                            Test Connection
+                        </Button>
+                    </Box>
+
+                    {testResult && (
+                        <Callout.Root color={testResult.success ? "green" : "red"} size="1">
+                            <Callout.Icon>
+                                {testResult.success ? <BiCheckCircle /> : <BiXCircle />}
+                            </Callout.Icon>
+                            <Callout.Text>
+                                {testResult.message}
+                            </Callout.Text>
+                        </Callout.Root>
+                    )}
+
+                    <Callout.Root size="1">
+                        <Callout.Icon>
+                            <BiInfoCircle />
+                        </Callout.Icon>
+                        <Callout.Text>
+                            Make sure your Azure OpenAI resource is configured and accessible with the specified endpoint and API version.
+                        </Callout.Text>
+                    </Callout.Root>
+                </>
+            ) : null}
         </Flex>
     )
 }

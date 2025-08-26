@@ -25,6 +25,7 @@ class RavenSettings(Document):
 		config: DF.SmallText | None
 		department_channel_type: DF.Literal["Public", "Private"]
 		enable_ai_integration: DF.Check
+		enable_azure_ai: DF.Check
 		enable_google_apis: DF.Check
 		enable_local_llm: DF.Check
 		enable_openai_services: DF.Check
@@ -49,6 +50,10 @@ class RavenSettings(Document):
 		show_raven_on_desk: DF.Check
 		tenor_api_key: DF.Data | None
 		vapid_public_key: DF.Data | None
+		azure_api_key: DF.Password | None
+		azure_endpoint: DF.Data | None
+		azure_api_version: DF.Data | None
+		azure_deployment_name: DF.Data | None
 	# end: auto-generated types
 
 	def validate(self):
@@ -73,6 +78,16 @@ class RavenSettings(Document):
 
 		if self.openai_project_id:
 			self.openai_project_id = self.openai_project_id.strip()
+
+		if self.enable_azure_ai:
+			if not self.azure_api_key:
+				frappe.throw(_("Please enter the Azure API Key"))
+			if not self.azure_endpoint:
+				frappe.throw(_("Please enter the Azure Endpoint"))
+			if not self.azure_api_version:
+				frappe.throw(_("Please enter the Azure API Version"))
+			if not self.azure_deployment_name:
+				frappe.throw(_("Please enter the Azure Deployment Name"))
 
 		if self.enable_google_apis:
 			if not self.google_project_id:

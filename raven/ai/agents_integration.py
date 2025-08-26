@@ -52,6 +52,30 @@ class RavenAgentManager:
 				api_key="not-needed",  # LM Studio doesn't require API key
 				base_url=self.settings.local_llm_api_url,
 			)
+		elif self.bot_doc.model_provider == "Azure AI" and self.settings.enable_azure_ai:
+			# Client for Azure AI using old AzureOpenAI approach
+			azure_api_key = self.settings.get_password("azure_api_key")
+			azure_endpoint = (self.settings.azure_endpoint or "").strip()
+			azure_deployment_name = (self.settings.azure_deployment_name or "").strip()
+
+			if not azure_api_key:
+				frappe.throw(_("Azure API key is not configured in Raven Settings"))
+			if not azure_endpoint:
+				frappe.throw(_("Azure endpoint is not configured in Raven Settings"))
+			if not azure_deployment_name:
+				frappe.throw(_("Azure deployment name is not configured in Raven Settings"))
+
+			# Use the old AzureOpenAI client approach
+			from openai import AzureOpenAI
+			
+			# Get the configured API version
+			azure_api_version = (self.settings.azure_api_version or "2024-02-15-preview").strip()
+			
+			client = AzureOpenAI(
+				api_key=azure_api_key,
+				api_version=azure_api_version,
+				azure_endpoint=azure_endpoint,
+			)
 		else:
 			# Standard OpenAI client
 			api_key = self.settings.get_password("openai_api_key")
@@ -71,9 +95,15 @@ class RavenAgentManager:
 	async def _test_api_connection(self):
 		"""Test API connection before creating agent"""
 		try:
+			# For Azure AI, use deployment name as model parameter
+			if self.bot_doc.model_provider == "Azure AI":
+				model_param = self.settings.azure_deployment_name
+			else:
+				model_param = self.bot_doc.model
+			
 			# Try a simple completion to test connectivity
 			test_response = await self.client.chat.completions.create(
-				model=self.bot_doc.model, messages=[{"role": "user", "content": "test"}], max_tokens=5
+				model=model_param, messages=[{"role": "user", "content": "test"}], max_tokens=5
 			)
 			if not test_response or not test_response.choices:
 				return False
@@ -84,7 +114,7 @@ class RavenAgentManager:
 				f"Error: {str(e)}\n"
 				f"Model: {self.bot_doc.model}\n"
 				f"Provider: {self.bot_doc.model_provider}\n"
-				f"API URL: {self.settings.local_llm_api_url if self.bot_doc.model_provider == 'Local LLM' else 'OpenAI'}",
+				f"API URL: {self.settings.local_llm_api_url if self.bot_doc.model_provider == 'Local LLM' else (self.settings.azure_endpoint if self.bot_doc.model_provider == 'Azure AI' else 'OpenAI')}",
 				"API Connection Error",
 			)
 			return False
@@ -105,11 +135,11 @@ class RavenAgentManager:
 				"Raven AI Functions Error",
 			)
 
-		# Add file search tool if enabled for OpenAI
+		# Add file search tool if enabled for OpenAI or Azure AI
 		if (
 			hasattr(self.bot_doc, "enable_file_search")
 			and self.bot_doc.enable_file_search
-			and self.bot_doc.model_provider == "OpenAI"
+			and self.bot_doc.model_provider in ["OpenAI", "Azure AI"]
 		):
 			try:
 				# For OpenAI, we need to handle file search differently
@@ -371,11 +401,17 @@ CRITICAL INSTRUCTIONS FOR TOOL USE:
 		if hasattr(self.bot_doc, "reasoning_effort") and self.bot_doc.reasoning_effort:
 			model_settings.reasoning_effort = self.bot_doc.reasoning_effort
 
+		# For Azure AI, use deployment name as model parameter
+		if self.bot_doc.model_provider == "Azure AI":
+			model_param = self.settings.azure_deployment_name
+		else:
+			model_param = self.bot_doc.model
+
 		# Create agent - ALWAYS pass empty list instead of None for tools
 		agent = Agent(
 			name=self.bot_doc.bot_name,
 			instructions=instructions,
-			model=self.bot_doc.model,
+			model=model_param,
 			tools=self.tools if self.tools else [],  # Pass empty list, not None
 			model_settings=model_settings,
 		)
@@ -506,8 +542,11 @@ async def handle_ai_request_async(
 					messages.append({"role": "user", "content": message})
 
 					# Create the API call with or without tools
+					# For Azure AI, use deployment name as model parameter
+					model_param = self.settings.azure_deployment_name if bot.model_provider == "Azure AI" else bot.model
+					
 					api_params = {
-						"model": bot.model,
+						"model": model_param,
 						"messages": messages,
 						"temperature": agent.model_settings.temperature,
 						"top_p": agent.model_settings.top_p,
@@ -563,7 +602,7 @@ async def handle_ai_request_async(
 
 								# Make final API call
 								final_response = await manager.client.chat.completions.create(
-									model=bot.model,
+									model=model_param,  # Use the same model parameter
 									messages=messages,
 									temperature=agent.model_settings.temperature,
 									top_p=agent.model_settings.top_p,
