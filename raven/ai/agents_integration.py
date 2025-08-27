@@ -65,13 +65,13 @@ class RavenAgentManager:
 			if not azure_deployment_name:
 				frappe.throw(_("Azure deployment name is not configured in Raven Settings"))
 
-			# Use the old AzureOpenAI client approach
-			from openai import AzureOpenAI
+			# Use the AsyncAzureOpenAI client for async operations
+			from openai import AsyncAzureOpenAI
 			
 			# Get the configured API version
 			azure_api_version = (self.settings.azure_api_version or "2024-02-15-preview").strip()
 			
-			client = AzureOpenAI(
+			client = AsyncAzureOpenAI(
 				api_key=azure_api_key,
 				api_version=azure_api_version,
 				azure_endpoint=azure_endpoint,
