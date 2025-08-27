@@ -244,3 +244,68 @@ def get_azure_openai_available_models():
 		frappe.log_error(f"Error fetching Azure OpenAI models: {str(e)}", "Azure OpenAI Models Error")
 		# Return empty list if Azure AI is not configured or enabled
 		return []
+
+
+@frappe.whitelist()
+def create_assistant(provider: str = "OpenAI", name: str = None, instructions: str = None, temperature: float = 1, top_p: float = 1):
+	"""
+	Create an OpenAI/Azure AI Assistant
+	"""
+	# Check permissions
+	user = frappe.session.user
+	if user != "Guest" and not (frappe.has_permission(doctype="Raven Bot", ptype="write") or frappe.has_permission(doctype="Raven Settings", ptype="read")):
+		frappe.throw(_("You don't have permission to create assistants"))
+	
+	try:
+		if provider == "Azure AI":
+			# Create Azure AI Assistant
+			from raven.ai.openai_client import get_azure_openai_client
+			
+			# Get Azure settings
+			raven_settings = frappe.get_cached_doc("Raven Settings")
+			deployment_name = raven_settings.azure_deployment_name
+			
+			if not deployment_name:
+				return {"success": False, "message": "Azure deployment name is not configured"}
+			
+			client = get_azure_openai_client()
+			
+			assistant = client.beta.assistants.create(
+				model=deployment_name,
+				name=name or "Azure Assistant",
+				instructions=instructions or "You are a helpful assistant.",
+				tools=[],
+				temperature=float(temperature),
+				top_p=float(top_p)
+			)
+			
+			return {
+				"success": True,
+				"message": "Azure AI Assistant created successfully",
+				"assistant_id": assistant.id
+			}
+			
+		else:
+			# Create OpenAI Assistant
+			from raven.ai.openai_client import get_open_ai_client
+			
+			client = get_open_ai_client()
+			
+			assistant = client.beta.assistants.create(
+				model="gpt-4o",  # Default OpenAI model
+				name=name or "OpenAI Assistant",
+				instructions=instructions or "You are a helpful assistant.",
+				tools=[],
+				temperature=float(temperature),
+				top_p=float(top_p)
+			)
+			
+			return {
+				"success": True,
+				"message": "OpenAI Assistant created successfully",
+				"assistant_id": assistant.id
+			}
+			
+	except Exception as e:
+		frappe.log_error(f"Error creating assistant: {str(e)}", "Assistant Creation Error")
+		return {"success": False, "message": f"Failed to create assistant: {str(e)}"}

@@ -86,10 +86,15 @@ def handle_bot_dm_with_agents(message, bot):
 
 def handle_bot_dm_with_assistants(message, bot):
 	"""
-	Legacy function to handle direct messages using OpenAI Assistants API.
+	Legacy function to handle direct messages using OpenAI/Azure Assistants API.
 	"""
 
-	client = get_open_ai_client()
+	# Use appropriate client based on bot provider
+	if bot.model_provider == "Azure AI":
+		from raven.ai.openai_client import get_azure_openai_client
+		client = get_azure_openai_client()
+	else:
+		client = get_open_ai_client()
 
 	# If the message is a poll, send a message to the user that we don't support polls for AI yet
 	if message.message_type == "Poll":
@@ -237,10 +242,15 @@ def handle_ai_thread_message_with_agents(message, channel, bot):
 
 def handle_ai_thread_message_with_assistants(message, channel, bot):
 	"""
-	Legacy function to handle thread messages using OpenAI Assistants API.
+	Legacy function to handle thread messages using OpenAI/Azure Assistants API.
 	"""
 
-	client = get_open_ai_client()
+	# Use appropriate client based on bot provider
+	if bot.model_provider == "Azure AI":
+		from raven.ai.openai_client import get_azure_openai_client
+		client = get_azure_openai_client()
+	else:
+		client = get_open_ai_client()
 
 	if message.message_type in ["File", "Image"]:
 
@@ -457,6 +467,7 @@ def process_message_with_agent(
 		frappe.publish_realtime(
 			"ai_event_clear",
 			{
+				
 				"channel_id": channel_id,
 			},
 			doctype="Raven Channel",

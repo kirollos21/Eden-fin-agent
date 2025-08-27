@@ -57,6 +57,9 @@ class RavenAgentManager:
 			azure_api_key = self.settings.get_password("azure_api_key")
 			azure_endpoint = (self.settings.azure_endpoint or "").strip()
 			azure_deployment_name = (self.settings.azure_deployment_name or "").strip()
+			
+			# Debug logging to compare with test settings
+			frappe.logger().info(f"Agent Azure Config - Endpoint: {azure_endpoint}, Deployment: {azure_deployment_name}, API Key: {'Set' if azure_api_key else 'Not Set'}")
 
 			if not azure_api_key:
 				frappe.throw(_("Azure API key is not configured in Raven Settings"))
@@ -335,6 +338,27 @@ class RavenAgentManager:
 		except Exception as e:
 			frappe.log_error(f"Error creating FileSearchTool: {str(e)}", "File Search Tool Error")
 			return None
+
+	def _create_azure_assistant(self, client, deployment_name):
+		"""Create Azure Assistant for the bot"""
+		try:
+			# Create assistant using Azure OpenAI
+			assistant = client.beta.assistants.create(
+				model=deployment_name,  # Use Azure deployment name
+				instructions=self.bot_doc.instruction or "You are a helpful assistant.",
+				tools=[],  # Add tools as needed
+				temperature=self.bot_doc.temperature or 1,
+				top_p=self.bot_doc.top_p or 1
+			)
+			
+			# Save assistant ID to bot
+			self.bot_doc.openai_assistant_id = assistant.id
+			self.bot_doc.save()
+			
+			frappe.logger().info(f"Created Azure Assistant {assistant.id} for bot {self.bot_doc.name}")
+			
+		except Exception as e:
+			frappe.log_error(f"Failed to create Azure Assistant: {str(e)}", "Azure Assistant Creation Error")
 
 	def _get_bot_function(self, doctype: str):
 		"""Get bot function configuration for a DocType"""

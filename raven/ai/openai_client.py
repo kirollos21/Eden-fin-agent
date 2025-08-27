@@ -52,7 +52,7 @@ def get_azure_openai_client():
 	from openai import AzureOpenAI
 	
 	# Get the configured API version
-	azure_api_version = (raven_settings.azure_api_version or "2024-02-15-preview").strip()
+	azure_api_version = (raven_settings.azure_api_version or "2024-12-01-preview").strip()
 	
 	client_args = {
 		"api_key": azure_api_key.strip(),

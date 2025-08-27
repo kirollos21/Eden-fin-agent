@@ -2,39 +2,101 @@ import { Label, ErrorText, HelperText } from '@/components/common/Form'
 import { Stack, HStack } from '@/components/layout/Stack'
 import { RavenBot } from '@/types/RavenBot/RavenBot'
 import useRavenSettings from '@/hooks/fetchers/useRavenSettings'
-import { Box, TextField, Checkbox, Text, Separator, Tooltip, Heading, Select, Slider, Code, Callout } from '@radix-ui/themes'
+import { Box, TextField, Checkbox, Text, Separator, Tooltip, Heading, Select, Slider, Code, Callout, Button } from '@radix-ui/themes'
 import { useFrappeGetCall, useFrappePostCall } from 'frappe-react-sdk'
 import { useFormContext, Controller } from 'react-hook-form'
-import { BiInfoCircle } from 'react-icons/bi'
+import { BiInfoCircle, BiPlus } from 'react-icons/bi'
+import { useState } from 'react'
 
 type Props = {}
 
 const AIFeaturesBotForm = (props: Props) => {
-    const { register, control, formState: { errors }, watch } = useFormContext<RavenBot>()
+    const { register, control, formState: { errors }, watch, setValue } = useFormContext<RavenBot>()
 
     const openAIAssistantID = watch('openai_assistant_id')
     const modelProvider = watch('model_provider')
     const temperature = watch('temperature')
     const top_p = watch('top_p')
+    const instruction = watch('instruction')
+    const botName = watch('bot_name')
 
     const isLocalLLM = modelProvider === 'Local LLM'
     const isOpenAI = !modelProvider || modelProvider === 'OpenAI'
+    
+    const [isCreatingAssistant, setIsCreatingAssistant] = useState(false)
+    
+    const { call: createAssistant } = useFrappePostCall('raven.api.ai_features.create_assistant')
+    
+    const handleCreateAssistant = async () => {
+        if (!botName) {
+            alert('Please enter a bot name first')
+            return
+        }
+        
+        setIsCreatingAssistant(true)
+        try {
+            const result = await createAssistant({
+                provider: modelProvider,
+                name: botName,
+                instructions: instruction || 'You are a helpful assistant.',
+                temperature: temperature || 1,
+                top_p: top_p || 1
+            })
+            
+            if (result?.message?.assistant_id) {
+                setValue('openai_assistant_id', result.message.assistant_id)
+                alert(`Assistant created successfully! ID: ${result.message.assistant_id}`)
+            } else {
+                alert('Failed to create assistant')
+            }
+        } catch (error) {
+            console.error('Error creating assistant:', error)
+            alert('Failed to create assistant')
+        } finally {
+            setIsCreatingAssistant(false)
+        }
+    }
 
     return (
         <Stack gap='4'>
-            {!isLocalLLM && openAIAssistantID && (
+            {!isLocalLLM && (
                 <Stack maxWidth={'480px'}>
                     <Box>
-                        <Label htmlFor='openai_assistant_id'>OpenAI Assistant ID</Label>
-                        <TextField.Root
-                            id='openai_assistant_id'
-                            {...register('openai_assistant_id')}
-                            readOnly
-                            placeholder="asst_*******************"
-                            aria-invalid={errors.openai_assistant_id ? 'true' : 'false'}
-                        />
+                        <Label htmlFor='openai_assistant_id'>
+                            {modelProvider === 'Azure AI' ? 'Azure AI Assistant ID' : 'OpenAI Assistant ID'} 
+                            <Text as='span' color='gray' weight='regular'> (Optional)</Text>
+                        </Label>
+                        <HStack>
+                            <TextField.Root
+                                id='openai_assistant_id'
+                                {...register('openai_assistant_id')}
+                                placeholder="asst_*******************"
+                                aria-invalid={errors.openai_assistant_id ? 'true' : 'false'}
+                                style={{ flex: 1 }}
+                            />
+                            <Button
+                                type="button"
+                                variant="soft"
+                                size="2"
+                                onClick={handleCreateAssistant}
+                                disabled={isCreatingAssistant || !botName}
+                            >
+                                <BiPlus size={16} />
+                                {isCreatingAssistant ? 'Creating...' : 'Create'}
+                            </Button>
+                        </HStack>
                     </Box>
                     {errors.openai_assistant_id && <ErrorText>{errors.openai_assistant_id?.message}</ErrorText>}
+                    <HelperText>
+                        {modelProvider === 'Azure AI' 
+                            ? 'Enter an existing Azure AI Assistant ID to use the Assistants API instead of direct chat completions. Leave empty to use the newer Agents SDK approach.'
+                            : 'Enter an existing OpenAI Assistant ID to use the Assistants API instead of direct chat completions. Leave empty to use the newer Agents SDK approach.'
+                        }
+                        <br /><br />
+                        <strong>Assistants API benefits:</strong> Persistent conversation threads, automatic conversation management, built-in tools (file search, code interpreter).
+                        <br />
+                        <strong>Agents SDK benefits:</strong> More direct control, better for custom workflows, supports all model providers.
+                    </HelperText>
                 </Stack>
             )}
 
